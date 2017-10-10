@@ -31,6 +31,27 @@ def GetLightDirFromSphere( Image, boundingbox ) :
     z = math.sqrt( 1.0 - pow(x, 2.0) - pow(y, 2.0) )
     return [ x, y, z ]
 
+def GlobalHeights( Pgrads,  Qgrads) :
+    l = 1.0
+    mu = 1.0
+    rows = Pgrads.shape[0]
+    cols = Pgrads.shape[1]
+    P = cv2.dft( Pgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
+    Q = cv2.dft( Qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
+    Z = np.zeros( (rows, cols, 2) )
+    for i in range(rows) :
+        for j in range(cols) :
+            if i == 0 or j == 0 : continue
+            u = math.sin( i * 2 * math.pi / rows )
+            v = math.sin( j * 2 * math.pi / cols )
+            uv = u ** 2 + v ** 2
+            d = ( 1 + l ) * uv + mu * ( uv ** 2 )
+            Z[i, j, 0] = (u*P[i, j, 1] + v*Q[i, j, 1]) / d
+            Z[i, j, 1] = (-u*P[i, j, 0] - v*Q[i, j, 0]) / d
+    Z[0, 0, 0] = 0.0
+    Z[0, 0, 1] = 0.0
+    Z = cv2.dft( Z, cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
+    return Z
 
 # Main application
 if __name__ == '__main__' :
@@ -53,37 +74,40 @@ if __name__ == '__main__' :
     height = calibImages[0].shape[1]
     width = calibImages[0].shape[0]
     _, LightsInv = cv2.invert( Lights, flags = cv2.DECOMP_SVD )
-    Normals = np.zeros( (height, width) )
-    Pgrads = np.zeros( (height, width) )
-    Qgrads = np.zeros( (height, width) )
+    Normals = np.zeros( (width, height, 3) )
+    Pgrads = np.zeros( (width, height) )
+    Qgrads = np.zeros( (width, height) )
     for x in range( width ) :
         for y in range( height ) :
             I = np.empty( NUM_IMGS )
             for i in range( NUM_IMGS ) :
                 I[i] = modelImages[i][x][y]
-                n = np.dot( LightsInv, I )
-                p = np.sqrt( np.dot(n,np.transpose(n)) )
-                if p > 0 : n = n / p
-                
-    #         cv::Mat n = LightsInv * cv::Mat(I);
-    #         float p = sqrt(cv::Mat(n).dot(n));
-    #         if (p > 0) { n = n/p; }
-    #         if (n.at<float>(2,0) == 0) { n.at<float>(2,0) = 1.0; }
-    #         int legit = 1;
-    #         /* avoid spikes ad edges */
-    #         for (int i = 0; i < NUM_IMGS; i++) {
-    #             legit *= modelImages[i].at<uchar>(Point(x,y)) >= 0;
-    #         }
-    #         if (legit) {
-    #             Normals.at<cv::Vec3f>(cv::Point(x,y)) = n;
-    #             Pgrads.at<float>(cv::Point(x,y)) = n.at<float>(0,0)/n.at<float>(2,0);
-    #             Qgrads.at<float>(cv::Point(x,y)) = n.at<float>(1,0)/n.at<float>(2,0);
-    #         } else {
-    #             cv::Vec3f nullvec(0.0f, 0.0f, 1.0f);
-    #             Normals.at<cv::Vec3f>(cv::Point(x,y)) = nullvec;
-    #             Pgrads.at<float>(cv::Point(x,y)) = 0.0f;
-    #             Qgrads.at<float>(cv::Point(x,y)) = 0.0f;
-    #         }
-    #
-    #     }
-    # }
+            n = np.dot( LightsInv, I )
+            p = math.sqrt( (n ** 2).sum() )
+            if p > 0 : n = n / p
+            if n[2] == 0 : n[2] = 1
+            legit = 1
+            for i in range(NUM_IMGS) :
+                legit *= modelImages[i][x][y] >= 0
+            if legit :
+                Normals[x][y] = n
+                Pgrads[x][y] = n[0]/n[2]
+                Qgrads[x][y] = n[1]/n[2]
+            else :
+                Normals[x][y] = [0, 0, 1]
+                Pgrads[x][y] = 0
+                Qgrads[x][y] = 0
+
+    # View the normal map
+#    cv2.imshow( "Normalmap", cv2.cvtColor( np.array( Normals, dtype=np.float32 ), cv2.COLOR_BGR2RGB ) )
+#    cv2.waitKey()
+
+    # Global integration of surface normals
+    Z = GlobalHeights( Pgrads, Qgrads )
+
+    output = ''
+    for x in range( width ) :
+        for y in range( height ) :
+            output += str(x) + ' ' + str(y) + ' ' + str(Z[x,y,0]) + '\n'
+    with open( 'pytest.txt', 'w' ) as file :
+        file.write( output )
