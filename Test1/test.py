@@ -12,6 +12,8 @@ import pickle
 import cv2
 import numpy as np
 
+result_log = ''
+
 # Source image parameters
 NUM_IMGS = 12
 CALIBRATION = "Images/Chrome/chrome."
@@ -149,6 +151,10 @@ def PhotometicStereo() :
     mask = cv2.imread( CALIBRATION + "mask.png", cv2.IMREAD_GRAYSCALE )
     ModelMask = cv2.imread( MODEL + "mask.png", cv2.IMREAD_GRAYSCALE )
     bb = GetBoundingBox( mask )
+
+    global result_log
+    result_log += 'Bounding box: {}\n'.format( bb )
+
     for i in range( NUM_IMGS ) :
         Calib = cv2.imread( CALIBRATION + str(i) + ".png", cv2.IMREAD_GRAYSCALE )
         tmp = cv2.imread( MODEL + str(i) + ".png", cv2.IMREAD_GRAYSCALE )
@@ -156,33 +162,49 @@ def PhotometicStereo() :
         Lights[i] = GetLightDirFromSphere(Calib, bb)
         calibImages.append( Calib )
         modelImages.append( Model )
+
+    result_log += 'Lights:\n{}\n'.format( Lights )
+
     # Estimate the normals
-    height = calibImages[0].shape[1]
-    width = calibImages[0].shape[0]
+    height = calibImages[0].shape[0]
+    width = calibImages[0].shape[1]
+
+    result_log += 'Height: {}\n'.format( height )
+    result_log += 'Width: {}\n'.format( width )
+
     _, LightsInv = cv2.invert( Lights, flags = cv2.DECOMP_SVD )
-    Normals = np.zeros( (width, height, 3) )
-    Pgrads = np.zeros( (width, height) )
-    Qgrads = np.zeros( (width, height) )
+
+    result_log += 'LightsInv:\n{}\n'.format( LightsInv )
+
+    Normals = np.zeros( (height, width, 3) )
+    Pgrads = np.zeros( (height, width) )
+    Qgrads = np.zeros( (height, width) )
     for x in range( width ) :
         for y in range( height ) :
             I = np.empty( NUM_IMGS )
             for i in range( NUM_IMGS ) :
-                I[i] = modelImages[i][x][y]
+                I[i] = modelImages[i][y, x]
             n = np.dot( LightsInv, I )
             p = math.sqrt( (n ** 2).sum() )
             if p > 0 : n = n / p
             if n[2] == 0 : n[2] = 1
             legit = 1
             for i in range(NUM_IMGS) :
-                legit *= modelImages[i][x][y] >= 0
+                legit *= modelImages[i][y, x] >= 0
             if legit :
-                Normals[x][y] = n
-                Pgrads[x][y] = n[0]/n[2]
-                Qgrads[x][y] = n[1]/n[2]
+                Normals[y, x] = n
+                Pgrads[y, x] = n[0] / n[2]
+                Qgrads[y, x] = n[1] / n[2]
             else :
-                Normals[x][y] = [0, 0, 1]
-                Pgrads[x][y] = 0
-                Qgrads[x][y] = 0
+                Normals[y, x] = [0, 0, 1]
+                Pgrads[y, x] = 0
+                Qgrads[y, x] = 0
+
+    result_log += 'Pgrads:\n{}\n'.format( Pgrads )
+
+    # View the normal map
+    cv2.imwrite( 'result.png', np.array( Normals * 255.99, dtype=np.uint8 ) )
+
     # View the normal map
     cv2.imshow( "Normalmap", cv2.cvtColor( np.array( Normals, dtype=np.float32 ), cv2.COLOR_BGR2RGB ) )
     cv2.waitKey()
@@ -199,15 +221,20 @@ def PhotometicStereo() :
 if __name__ == '__main__' :
 
     # Load previous result
-    result = LoadPreviousResult()
+#    result = LoadPreviousResult()
     # Or compute the photometric stereo
-    if not result : result = PhotometicStereo()
+#    if not result : result = PhotometicStereo()
+    result = PhotometicStereo()
+
+    # Write the computation log
+    with open( 'result.log', 'w' ) as file :
+        file.write( result_log )
 
     # Export the result to an OBJ file
     output = ''
     for x in range( result['width'] ) :
         for y in range( result['height'] ) :
-            output += 'v {} {} {}\n'.format( float(x), float(y), result['z'][x,y] )
+            output += 'v {} {} {}\n'.format( float(x), float(y), result['z'][y ,x] )
     with open( 'result.obj', 'w' ) as file :
         file.write( output )
 

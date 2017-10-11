@@ -86,12 +86,17 @@ int main(int argc, char *argv[]) {
     const string CALIBRATION    = "../Images/Chrome/chrome.";
     const string MODEL          = "../Images/Rock/rock.";
 
+    ostringstream result_log;
+
     vector<Mat> calibImages;
     vector<Mat> modelImages;
     Mat Lights(NUM_IMGS, 3, CV_32F);
     Mat Mask = imread(CALIBRATION + "mask.png", CV_LOAD_IMAGE_GRAYSCALE);
     Mat ModelMask = imread(MODEL + "mask.png", CV_LOAD_IMAGE_GRAYSCALE);
     Rect bb = getBoundingBox(Mask);
+
+    result_log << "Bounding box: " << bb << endl;
+
     for (int i = 0; i < NUM_IMGS; i++) {
         Mat Calib = imread(CALIBRATION + to_string(i) + ".png",
                            CV_LOAD_IMAGE_GRAYSCALE);
@@ -107,11 +112,19 @@ int main(int argc, char *argv[]) {
         modelImages.push_back(Model);
     }
 
+    result_log << "Lights:\n" << Lights << endl;
+
     const int height    = calibImages[0].rows;
     const int width     = calibImages[0].cols;
+
+    result_log << "Height: " << height << endl;
+    result_log << "Width: " << width << endl;
+
     /* light directions, surface normals, p,q gradients */
     cv::Mat LightsInv;
     cv::invert(Lights, LightsInv, cv::DECOMP_SVD);
+
+    result_log << "LightsInv:\n" << LightsInv << endl;
 
     cv::Mat Normals(height, width, CV_32FC3, cv::Scalar::all(0));
     cv::Mat Pgrads(height, width, CV_32F, cv::Scalar::all(0));
@@ -152,6 +165,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    result_log << "Pgrads:\n" << Pgrads << endl;
+
     cv::Mat Normalmap;
     cv::cvtColor(Normals, Normalmap, CV_BGR2RGB);
     cv::imshow("Normalmap", Normalmap);
@@ -166,6 +181,10 @@ int main(int argc, char *argv[]) {
         }
     }
     file.close();
+
+    ofstream result_log_file( "result.log" );
+    result_log_file << result_log.str();
+    result_log_file.close();
 
     cv::waitKey();
     return 0;
