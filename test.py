@@ -42,15 +42,15 @@ def GlobalHeights( Pgrads,  Qgrads) :
     for i in range(rows) :
         for j in range(cols) :
             if i == 0 or j == 0 : continue
-            u = math.sin( i * 2 * math.pi / rows )
-            v = math.sin( j * 2 * math.pi / cols )
+            u = math.sin( i * 2.0 * math.pi / rows )
+            v = math.sin( j * 2.0 * math.pi / cols )
             uv = u ** 2 + v ** 2
             d = ( 1 + l ) * uv + mu * ( uv ** 2 )
-            Z[i, j, 0] = (u*P[i, j, 1] + v*Q[i, j, 1]) / d
+            Z[i, j, 0] = ( u*P[i, j, 1] + v*Q[i, j, 1]) / d
             Z[i, j, 1] = (-u*P[i, j, 0] - v*Q[i, j, 0]) / d
     Z[0, 0, 0] = 0.0
     Z[0, 0, 1] = 0.0
-    Z = cv2.dft( Z, cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
+    Z = cv2.dft( Z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
     return Z
 
 # Main application
@@ -108,6 +108,6 @@ if __name__ == '__main__' :
     output = ''
     for x in range( width ) :
         for y in range( height ) :
-            output += str(x) + ' ' + str(y) + ' ' + str(Z[x,y,0]) + '\n'
+            output += str(x) + ' ' + str(y) + ' ' + str(Z[x,y]) + '\n'
     with open( 'pytest.txt', 'w' ) as file :
         file.write( output )
