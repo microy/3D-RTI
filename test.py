@@ -53,6 +53,84 @@ def GlobalHeights( Pgrads,  Qgrads) :
     Z = cv2.dft( Z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
     return Z
 
+# Convert the surface to a triangular mesh
+def SurfaceToMesh( height, width, Z ) :
+	# Generate the X-Y grid
+	X, Y = np.meshgrid( range(width), range(height) )
+	# Create the vertices
+	vertices = np.array( (X.flatten(), Y.flatten(), Z.flatten()) ).T
+	# Get the size of the grid
+	nb_lines = len( X )
+	nb_cols = len( Y )
+	# Array of vertex indices
+	vindex = np.array( range( nb_lines * nb_cols ) ).reshape( nb_lines, nb_cols )
+	# Find the diagonal that minimizes the Z difference
+	left_diagonal = np.absolute( Z[1:,1:] - Z[:-1,:-1] ) > np.absolute( Z[1:,:-1] - Z[:-1,1:] )
+	# Flatten the array
+	left_diagonal = left_diagonal.flatten()
+	# Double the values (1 square -> 2 triangles)
+	left_diagonal = np.dstack( (left_diagonal, left_diagonal) ).flatten()
+	# Initialize the right diagonal face array
+	faces = np.empty( ( 2 * (nb_lines - 1) * (nb_cols - 1), 3 ), dtype=np.int )
+	# Initialize the left diagonal face array
+	left_faces = np.empty( ( 2 * (nb_lines - 1) * (nb_cols - 1), 3 ), dtype=np.int )
+	#
+	# Right diagonal
+	#
+	# Create lower triangle faces
+	faces[ ::2, 0 ] = vindex[   : nb_lines - 1,   : nb_cols - 1 ].flatten()
+	faces[ ::2, 1 ] = vindex[   : nb_lines - 1, 1 : nb_cols     ].flatten()
+	faces[ ::2, 2 ] = vindex[ 1 : nb_lines    , 1 : nb_cols     ].flatten()
+	# Create upper triangle faces
+	faces[ 1::2, 0 ] = vindex[   : nb_lines - 1,   : nb_cols - 1 ].flatten()
+	faces[ 1::2, 1 ] = vindex[ 1 : nb_lines    , 1 : nb_cols     ].flatten()
+	faces[ 1::2, 2 ] = vindex[ 1 : nb_lines    ,   : nb_cols - 1 ].flatten()
+	#
+	# Left diagonal
+	#
+	# Create lower triangle faces
+	left_faces[ ::2, 0 ] = vindex[   : nb_lines - 1,   : nb_cols - 1 ].flatten()
+	left_faces[ ::2, 1 ] = vindex[   : nb_lines - 1, 1 : nb_cols     ].flatten()
+	left_faces[ ::2, 2 ] = vindex[ 1 : nb_lines    ,   : nb_cols - 1 ].flatten()
+	# Create upper triangle faces
+	left_faces[ 1::2, 0 ] = vindex[   : nb_lines - 1, 1 : nb_cols     ].flatten()
+	left_faces[ 1::2, 1 ] = vindex[ 1 : nb_lines    , 1 : nb_cols     ].flatten()
+	left_faces[ 1::2, 2 ] = vindex[ 1 : nb_lines    ,   : nb_cols - 1 ].flatten()
+	#
+	# Merge left and right diagonal faces
+	#
+	faces[ left_diagonal ] = left_faces[ left_diagonal ]
+	# Return the mesh
+	return vertices, faces
+
+
+#
+# Write the surface to a Stanford PLY file
+#
+def WritePly( filename, vertices, faces ) :
+	# Define the PLY file header
+	header = '''ply
+format binary_little_endian 1.0
+element vertex {vertex_number}
+property float x
+property float y
+property float z
+element face {face_number}
+property list int int vertex_indices
+end_header\n'''.format( vertex_number = len( vertices ), face_number = len( faces ) )
+	# Open the target PLY file
+	with open( filename, 'wb' ) as ply_file :
+		# Write the header
+		ply_file.write( header.encode( 'UTF-8' ) )
+		# Write the vertex data
+		ply_file.write( st.pack( '3f' * len( vertices ), *vertices.flatten() ) )
+		# Add the number of indices to every face
+		faces = np.insert( faces, 0, 3, axis = 1 )
+		# Write the face data
+		ply_file.write( st.pack( '4i' * len( faces ), *faces.flatten() ) )
+
+
+
 # Main application
 if __name__ == '__main__' :
 
@@ -113,3 +191,6 @@ if __name__ == '__main__' :
 #    with open( 'pytest.txt', 'w' ) as file :
     with open( 'pytest.obj', 'w' ) as file :
         file.write( output )
+
+    vertices, faces = SurfaceToMesh( height, width, Z )
+    WritePly( "test.obj", vertices, faces )
