@@ -108,6 +108,8 @@ if __name__ == '__main__' :
     output = ''
     for x in range( width ) :
         for y in range( height ) :
-            output += str(x) + ' ' + str(y) + ' ' + str(Z[x,y]) + '\n'
-    with open( 'pytest.txt', 'w' ) as file :
+#            output += str(x) + ' ' + str(y) + ' ' + str(Z[x,y]) + '\n'
+            output += 'v {} {} {}\n'.format( float(x), float(y), Z[x,y] )
+#    with open( 'pytest.txt', 'w' ) as file :
+    with open( 'pytest.obj', 'w' ) as file :
         file.write( output )
