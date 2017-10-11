@@ -19,49 +19,6 @@ NUM_IMGS = 12
 CALIBRATION = "Images/Chrome/chrome."
 MODEL = "Images/Rock/rock."
 
-# Return the bounding box of the image mask
-def GetBoundingBox( mask ) :
-    _, contours, _ = cv2.findContours( np.copy( mask ), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE )
-    return cv2.boundingRect( contours[0] )
-
-# Compute the light direction for each image
-def GetLightDirFromSphere( Image, boundingbox ) :
-    THRESH = 254
-    x, y, w, h = boundingbox
-    radius = w / 2.0
-    _, Binary = cv2.threshold( Image, THRESH, 255, cv2.THRESH_BINARY )
-    SubImage = Binary[ y:y+h, x:x+w ]
-    m = cv2.moments( SubImage )
-    cx = int( m['m10'] / m['m00'] )
-    cy = int( m['m01'] / m['m00'] )
-    x = (cy - radius) / radius
-    y = (cx - radius) / radius
-    z = math.sqrt( 1.0 - pow(x, 2.0) - pow(y, 2.0) )
-    return [ x, y, z ]
-
-# Compute the depth map
-def GlobalHeights( Pgrads,  Qgrads) :
-    l = 1.0
-    mu = 1.0
-    rows = Pgrads.shape[0]
-    cols = Pgrads.shape[1]
-    P = cv2.dft( Pgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
-    Q = cv2.dft( Qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
-    Z = np.zeros( (rows, cols, 2) )
-    for i in range(rows) :
-        for j in range(cols) :
-            if i == 0 or j == 0 : continue
-            u = math.sin( i * 2.0 * math.pi / rows )
-            v = math.sin( j * 2.0 * math.pi / cols )
-            uv = u ** 2 + v ** 2
-            d = ( 1 + l ) * uv + mu * ( uv ** 2 )
-            Z[i, j, 0] = ( u*P[i, j, 1] + v*Q[i, j, 1]) / d
-            Z[i, j, 1] = (-u*P[i, j, 0] - v*Q[i, j, 0]) / d
-    Z[0, 0, 0] = 0.0
-    Z[0, 0, 1] = 0.0
-    Z = cv2.dft( Z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
-    return Z
-
 # Convert the surface to a triangular mesh
 def SurfaceToMesh( height, width, Z ) :
 	# Generate the X-Y grid
@@ -142,6 +99,49 @@ def SaveResult( result, filename = 'result.pkl' ) :
 	with open( filename, 'wb') as result_file :
 		pickle.dump( result, result_file, pickle.HIGHEST_PROTOCOL )
 
+# Return the bounding box of the image mask
+def GetBoundingBox( mask ) :
+    _, contours, _ = cv2.findContours( np.copy( mask ), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE )
+    return cv2.boundingRect( contours[0] )
+
+# Compute the light direction for each image
+def GetLightDirFromSphere( Image, boundingbox ) :
+    THRESH = 254
+    x, y, w, h = boundingbox
+    radius = w / 2.0
+    _, Binary = cv2.threshold( Image, THRESH, 255, cv2.THRESH_BINARY )
+    SubImage = Binary[ y:y+h, x:x+w ]
+    m = cv2.moments( SubImage )
+    cx = int( m['m10'] / m['m00'] )
+    cy = int( m['m01'] / m['m00'] )
+    x = (cy - radius) / radius
+    y = (cx - radius) / radius
+    z = math.sqrt( 1.0 - pow(x, 2.0) - pow(y, 2.0) )
+    return [ x, y, z ]
+
+# Compute the depth map
+def GlobalHeights( Pgrads,  Qgrads) :
+    l = 1.0
+    mu = 1.0
+    rows = Pgrads.shape[0]
+    cols = Pgrads.shape[1]
+    P = cv2.dft( Pgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
+    Q = cv2.dft( Qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
+    Z = np.zeros( (rows, cols, 2) )
+    for i in range(rows) :
+        for j in range(cols) :
+            if i == 0 or j == 0 : continue
+            u = math.sin( i * 2.0 * math.pi / rows )
+            v = math.sin( j * 2.0 * math.pi / cols )
+            uv = u ** 2 + v ** 2
+            d = ( 1 + l ) * uv + mu * ( uv ** 2 )
+            Z[i, j, 0] = ( u*P[i, j, 1] + v*Q[i, j, 1]) / d
+            Z[i, j, 1] = (-u*P[i, j, 0] - v*Q[i, j, 0]) / d
+    Z[0, 0, 0] = 0.0
+    Z[0, 0, 1] = 0.0
+    Z = cv2.dft( Z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
+    return Z
+
 # Photometic Stereo
 def PhotometicStereo() :
     # Calibrate the light
@@ -200,14 +200,19 @@ def PhotometicStereo() :
                 Pgrads[y, x] = 0
                 Qgrads[y, x] = 0
 
-    result_log += 'Pgrads:\n{}\n'.format( Pgrads )
-
+    result_log += 'Pgrads:\n{}\n'.format( list(Pgrads) )
+    cv2.imshow( "Pgrads", Pgrads )
+    cv2.imwrite( 'pgrads.png',  Pgrads*255.99 )
+    cv2.imshow( "Qgrads", Qgrads )
+    cv2.imwrite( 'qgrads.png',  Qgrads*255.99 )
+    # Convert the normal map into an image
+    normalmap_image = cv2.cvtColor( np.array( Normals, dtype=np.float32 ), cv2.COLOR_BGR2RGB )
+    # Write the normal map
+    cv2.imwrite( 'normalmap.png',  normalmap_image*255.99 )
     # View the normal map
-    cv2.imwrite( 'result.png', np.array( Normals * 255.99, dtype=np.uint8 ) )
-
-    # View the normal map
-    cv2.imshow( "Normalmap", cv2.cvtColor( np.array( Normals, dtype=np.float32 ), cv2.COLOR_BGR2RGB ) )
+    cv2.imshow( "Normalmap", normalmap_image )
     cv2.waitKey()
+
     # Global integration of surface normals
     Z = GlobalHeights( Pgrads, Qgrads )
     # Put the different results in a dictionary

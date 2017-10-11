@@ -166,9 +166,14 @@ int main(int argc, char *argv[]) {
     }
 
     result_log << "Pgrads:\n" << Pgrads << endl;
+    cv::imwrite("pgrads.png", Pgrads * 255.99);
+    cv::imshow("pgrads.png", Pgrads);
+    cv::imwrite("qgrads.png", Qgrads * 255.99);
+    cv::imshow("qgrads.png", Qgrads);
 
     cv::Mat Normalmap;
     cv::cvtColor(Normals, Normalmap, CV_BGR2RGB);
+    cv::imwrite("normalmap.png", Normalmap * 255.99);
     cv::imshow("Normalmap", Normalmap);
 
     /* global integration of surface normals */
