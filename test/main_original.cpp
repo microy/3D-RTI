@@ -6,10 +6,105 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-#include <fstream>
+#include <vtkSmartPointer.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkPolyData.h>
+#include <vtkPLYWriter.h>
+#include <vtkActor.h>
+#include <vtkProperty.h>
+#include <vtkImageViewer.h>
+#include <vtkRenderWindowInteractor.h>
+#include <vtkInteractorStyleImage.h>
+#include <vtkLight.h>
+#include <vtkLightCollection.h>
+#include <vtkRenderer.h>
+#include <vtkCellArray.h>
+#include <vtkPoints.h>
+#include <vtkPointData.h>
+#include <vtkFloatArray.h>
+#include <vtkTriangle.h>
 
 using namespace cv;
 using namespace std;
+
+void displayMesh(int width, int height, cv::Mat Z) {
+
+    /* creating visualization pipeline which basically looks like this:
+     vtkPoints -> vtkPolyData -> vtkPolyDataMapper -> vtkActor -> vtkRenderer */
+    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+    vtkSmartPointer<vtkPolyDataMapper> modelMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    vtkSmartPointer<vtkActor> modelActor = vtkSmartPointer<vtkActor>::New();
+    vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
+    vtkSmartPointer<vtkCellArray> vtkTriangles = vtkSmartPointer<vtkCellArray>::New();
+
+    /* insert x,y,z coords */
+    for (int y=0; y<height; y++) {
+        for (int x=0; x<width; x++) {
+            points->InsertNextPoint(x, y, Z.at<float>(y,x));
+        }
+    }
+
+    /* setup the connectivity between grid points */
+    vtkSmartPointer<vtkTriangle> triangle = vtkSmartPointer<vtkTriangle>::New();
+    triangle->GetPointIds()->SetNumberOfIds(3);
+    for (int i=0; i<height-1; i++) {
+        for (int j=0; j<width-1; j++) {
+            triangle->GetPointIds()->SetId(0, j+(i*width));
+            triangle->GetPointIds()->SetId(1, (i+1)*width+j);
+            triangle->GetPointIds()->SetId(2, j+(i*width)+1);
+            vtkTriangles->InsertNextCell(triangle);
+            triangle->GetPointIds()->SetId(0, (i+1)*width+j);
+            triangle->GetPointIds()->SetId(1, (i+1)*width+j+1);
+            triangle->GetPointIds()->SetId(2, j+(i*width)+1);
+            vtkTriangles->InsertNextCell(triangle);
+        }
+    }
+    polyData->SetPoints(points);
+    polyData->SetPolys(vtkTriangles);
+
+    /* create two lights */
+    vtkSmartPointer<vtkLight> light1 = vtkSmartPointer<vtkLight>::New();
+    light1->SetPosition(-1, 1, 1);
+    renderer->AddLight(light1);
+    vtkSmartPointer<vtkLight> light2 = vtkSmartPointer<vtkLight>::New();
+    light2->SetPosition(1, -1, -1);
+    renderer->AddLight(light2);
+
+    /* meshlab-ish background */
+    modelMapper->SetInputData(polyData);
+    renderer->SetBackground(.45, .45, .9);
+    renderer->SetBackground2(.0, .0, .0);
+    renderer->GradientBackgroundOn();
+    vtkSmartPointer<vtkRenderWindow> renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
+    renderWindow->AddRenderer(renderer);
+    modelActor->SetMapper(modelMapper);
+
+    /* setting some properties to make it look just right */
+    modelActor->GetProperty()->SetSpecularColor(1, 1, 1);
+    modelActor->GetProperty()->SetAmbient(0.2);
+    modelActor->GetProperty()->SetDiffuse(0.2);
+    modelActor->GetProperty()->SetInterpolationToPhong();
+    modelActor->GetProperty()->SetSpecular(0.8);
+    modelActor->GetProperty()->SetSpecularPower(8.0);
+
+    renderer->AddActor(modelActor);
+    vtkSmartPointer<vtkRenderWindowInteractor> interactor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
+    interactor->SetRenderWindow(renderWindow);
+
+    /* export mesh */
+    vtkSmartPointer<vtkPLYWriter> plyExporter = vtkSmartPointer<vtkPLYWriter>::New();
+    plyExporter->SetInputData(polyData);
+    plyExporter->SetFileName("export.ply");
+    plyExporter->SetColorModeToDefault();
+    plyExporter->SetArrayName("Colors");
+    plyExporter->Update();
+    plyExporter->Write();
+
+    /* render mesh */
+    renderWindow->Render();
+    interactor->Start();
+}
 
 cv::Mat globalHeights(cv::Mat Pgrads, cv::Mat Qgrads) {
 
@@ -32,10 +127,6 @@ cv::Mat globalHeights(cv::Mat Pgrads, cv::Mat Qgrads) {
                 float d = (1.0f + lambda)*uv + mu*pow(uv,2);
                 Z.at<cv::Vec2f>(i, j)[0] = (u*P.at<cv::Vec2f>(i, j)[1] + v*Q.at<cv::Vec2f>(i, j)[1]) / d;
                 Z.at<cv::Vec2f>(i, j)[1] = (-u*P.at<cv::Vec2f>(i, j)[0] - v*Q.at<cv::Vec2f>(i, j)[0]) / d;
-    //            if( i>240 && i<245 && j>240 && j<245) {
-    //                cout << Z.at<cv::Vec2f>(i, j) << endl << flush;
-    //            }
-
             }
         }
     }
@@ -46,8 +137,6 @@ cv::Mat globalHeights(cv::Mat Pgrads, cv::Mat Qgrads) {
 
     cv::dft(Z, Z, cv::DFT_INVERSE | cv::DFT_SCALE | cv::DFT_REAL_OUTPUT);
 
-//    cout << Z.at<cv::Vec2f>(0, 0) << endl << flush;
-//    cout << Z.at<float>(0, 0) << endl << flush;
     return Z;
 }
 
@@ -83,8 +172,8 @@ cv::Rect getBoundingBox(cv::Mat Mask) {
 int main(int argc, char *argv[]) {
 
     const int NUM_IMGS          = 12;
-    const string CALIBRATION    = "../Images/Chrome/chrome.";
-    const string MODEL          = "../Images/Rock/rock.";
+    const string CALIBRATION    = "../../images/chrome/chrome.";
+    const string MODEL          = "../../images/rock/rock.";
 
     vector<Mat> calibImages;
     vector<Mat> modelImages;
@@ -116,7 +205,6 @@ int main(int argc, char *argv[]) {
     cv::Mat Normals(height, width, CV_32FC3, cv::Scalar::all(0));
     cv::Mat Pgrads(height, width, CV_32F, cv::Scalar::all(0));
     cv::Mat Qgrads(height, width, CV_32F, cv::Scalar::all(0));
-
     /* estimate surface normals and p,q gradients */
     for (int x=0; x<width; x++) {
         for (int y=0; y<height; y++) {
@@ -124,13 +212,9 @@ int main(int argc, char *argv[]) {
             for (int i = 0; i < NUM_IMGS; i++) {
                 I[i] = modelImages[i].at<uchar>(Point(x,y));
             }
+
             cv::Mat n = LightsInv * cv::Mat(I);
             float p = sqrt(cv::Mat(n).dot(n));
-
-            // if( x>240 && x<245 && y>240 && y<245) {
-            //     cout << x << "-" << y << " : " << n.reshape(3) << p << endl << flush;
-            // }
-
             if (p > 0) { n = n/p; }
             if (n.at<float>(2,0) == 0) { n.at<float>(2,0) = 1.0; }
             int legit = 1;
@@ -159,13 +243,8 @@ int main(int argc, char *argv[]) {
     /* global integration of surface normals */
     cv::Mat Z = globalHeights(Pgrads, Qgrads);
 
-    ofstream file( "original.obj" );
-    for (int y=0; y<height; y++) {
-        for (int x=0; x<width; x++) {
-            file << "v " << (float)x << " " << (float)y << " " << Z.at<float>(y,x) << endl;
-        }
-    }
-    file.close();
+    /* display reconstruction */
+    displayMesh(Pgrads.cols, Pgrads.rows, Z);
 
     cv::waitKey();
     return 0;
