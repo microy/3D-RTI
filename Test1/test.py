@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 # -*- coding:utf-8 -*-
 
 #
@@ -6,17 +7,22 @@
 
 # External dependencies
 import math
+import os
+import pickle
 import cv2
 import numpy as np
 
+# Source image parameters
 NUM_IMGS = 12
 CALIBRATION = "Images/Chrome/chrome."
 MODEL = "Images/Rock/rock."
 
+# Return the bounding box of the image mask
 def GetBoundingBox( mask ) :
     _, contours, _ = cv2.findContours( np.copy( mask ), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE )
     return cv2.boundingRect( contours[0] )
 
+# Compute the light direction for each image
 def GetLightDirFromSphere( Image, boundingbox ) :
     THRESH = 254
     x, y, w, h = boundingbox
@@ -31,6 +37,7 @@ def GetLightDirFromSphere( Image, boundingbox ) :
     z = math.sqrt( 1.0 - pow(x, 2.0) - pow(y, 2.0) )
     return [ x, y, z ]
 
+# Compute the depth map
 def GlobalHeights( Pgrads,  Qgrads) :
     l = 1.0
     mu = 1.0
@@ -74,9 +81,7 @@ def SurfaceToMesh( height, width, Z ) :
 	faces = np.empty( ( 2 * (nb_lines - 1) * (nb_cols - 1), 3 ), dtype=np.int )
 	# Initialize the left diagonal face array
 	left_faces = np.empty( ( 2 * (nb_lines - 1) * (nb_cols - 1), 3 ), dtype=np.int )
-	#
 	# Right diagonal
-	#
 	# Create lower triangle faces
 	faces[ ::2, 0 ] = vindex[   : nb_lines - 1,   : nb_cols - 1 ].flatten()
 	faces[ ::2, 1 ] = vindex[   : nb_lines - 1, 1 : nb_cols     ].flatten()
@@ -85,9 +90,7 @@ def SurfaceToMesh( height, width, Z ) :
 	faces[ 1::2, 0 ] = vindex[   : nb_lines - 1,   : nb_cols - 1 ].flatten()
 	faces[ 1::2, 1 ] = vindex[ 1 : nb_lines    , 1 : nb_cols     ].flatten()
 	faces[ 1::2, 2 ] = vindex[ 1 : nb_lines    ,   : nb_cols - 1 ].flatten()
-	#
 	# Left diagonal
-	#
 	# Create lower triangle faces
 	left_faces[ ::2, 0 ] = vindex[   : nb_lines - 1,   : nb_cols - 1 ].flatten()
 	left_faces[ ::2, 1 ] = vindex[   : nb_lines - 1, 1 : nb_cols     ].flatten()
@@ -96,17 +99,12 @@ def SurfaceToMesh( height, width, Z ) :
 	left_faces[ 1::2, 0 ] = vindex[   : nb_lines - 1, 1 : nb_cols     ].flatten()
 	left_faces[ 1::2, 1 ] = vindex[ 1 : nb_lines    , 1 : nb_cols     ].flatten()
 	left_faces[ 1::2, 2 ] = vindex[ 1 : nb_lines    ,   : nb_cols - 1 ].flatten()
-	#
 	# Merge left and right diagonal faces
-	#
 	faces[ left_diagonal ] = left_faces[ left_diagonal ]
 	# Return the mesh
 	return vertices, faces
 
-
-#
 # Write the surface to a Stanford PLY file
-#
 def WritePly( filename, vertices, faces ) :
 	# Define the PLY file header
 	header = '''ply
@@ -129,11 +127,21 @@ end_header\n'''.format( vertex_number = len( vertices ), face_number = len( face
 		# Write the face data
 		ply_file.write( st.pack( '4i' * len( faces ), *faces.flatten() ) )
 
+# Load previous result
+def LoadPreviousResult( filename = 'result.pkl' ) :
+	result = None
+	if os.path.isfile( filename ) :
+		with open( filename, 'rb' ) as result_file :
+			result = pickle.load( result_file )
+	return result
 
+# Save the result
+def SaveResult( result, filename = 'result.pkl' ) :
+	with open( filename, 'wb') as result_file :
+		pickle.dump( result, result_file, pickle.HIGHEST_PROTOCOL )
 
-# Main application
-if __name__ == '__main__' :
-
+# Photometic Stereo
+def PhotometicStereo() :
     # Calibrate the light
     calibImages = []
     modelImages = []
@@ -175,22 +183,36 @@ if __name__ == '__main__' :
                 Normals[x][y] = [0, 0, 1]
                 Pgrads[x][y] = 0
                 Qgrads[x][y] = 0
-
     # View the normal map
-#    cv2.imshow( "Normalmap", cv2.cvtColor( np.array( Normals, dtype=np.float32 ), cv2.COLOR_BGR2RGB ) )
-#    cv2.waitKey()
-
+    cv2.imshow( "Normalmap", cv2.cvtColor( np.array( Normals, dtype=np.float32 ), cv2.COLOR_BGR2RGB ) )
+    cv2.waitKey()
     # Global integration of surface normals
     Z = GlobalHeights( Pgrads, Qgrads )
+    # Put the different results in a dictionary
+    result = { 'height' : height, 'width' : width, 'normals' : Normals, 'pgrads' : Pgrads, 'qgrads' : Qgrads, 'z' : Z }
+    # Save the result with pickle
+    SaveResult( result )
+    # Return the result
+    return result
 
+# Main application
+if __name__ == '__main__' :
+
+    # Load previous result
+    result = LoadPreviousResult()
+    # Or compute the photometric stereo
+    if not result : result = PhotometicStereo()
+
+    # Export the result to an OBJ file
     output = ''
-    for x in range( width ) :
-        for y in range( height ) :
-#            output += str(x) + ' ' + str(y) + ' ' + str(Z[x,y]) + '\n'
-            output += 'v {} {} {}\n'.format( float(x), float(y), Z[x,y] )
-#    with open( 'pytest.txt', 'w' ) as file :
-    with open( 'pytest.obj', 'w' ) as file :
+    for x in range( result['width'] ) :
+        for y in range( result['height'] ) :
+            output += 'v {} {} {}\n'.format( float(x), float(y), result['z'][x,y] )
+    with open( 'result.obj', 'w' ) as file :
         file.write( output )
 
-    vertices, faces = SurfaceToMesh( height, width, Z )
-    WritePly( "test.obj", vertices, faces )
+    # Triangulate the mesh
+#    vertices, faces = SurfaceToMesh( height, width, Z )
+
+    # Export the mesh to a PLY file
+#    WritePly( "test.obj", vertices, faces )
