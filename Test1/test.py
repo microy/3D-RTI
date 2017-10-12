@@ -144,83 +144,84 @@ def GlobalHeights( Pgrads,  Qgrads) :
 
 # Photometic Stereo
 def PhotometicStereo() :
-    # Calibrate the light
-    calibImages = []
-    modelImages = []
-    Lights = np.empty( (NUM_IMGS, 3) )
-    mask = cv2.imread( CALIBRATION + "mask.png", cv2.IMREAD_GRAYSCALE )
-    ModelMask = cv2.imread( MODEL + "mask.png", cv2.IMREAD_GRAYSCALE )
-    bb = GetBoundingBox( mask )
+	# Calibrate the light
+	calibImages = []
+	modelImages = []
+	Lights = np.empty( (NUM_IMGS, 3) )
+	mask = cv2.imread( CALIBRATION + "mask.png", cv2.IMREAD_GRAYSCALE )
+	ModelMask = cv2.imread( MODEL + "mask.png", cv2.IMREAD_GRAYSCALE )
+	bb = GetBoundingBox( mask )
 
-    global result_log
-    result_log += 'Bounding box: {}\n'.format( bb )
+	global result_log
+	result_log += 'Bounding box: {}\n'.format( bb )
 
-    for i in range( NUM_IMGS ) :
-        Calib = cv2.imread( CALIBRATION + str(i) + ".png", cv2.IMREAD_GRAYSCALE )
-        tmp = cv2.imread( MODEL + str(i) + ".png", cv2.IMREAD_GRAYSCALE )
-        Model = cv2.bitwise_and( tmp, tmp, mask = ModelMask )
-        Lights[i] = GetLightDirFromSphere(Calib, bb)
-        calibImages.append( Calib )
-        modelImages.append( Model )
+	for i in range( NUM_IMGS ) :
+		Calib = cv2.imread( CALIBRATION + str(i) + ".png", cv2.IMREAD_GRAYSCALE )
+		tmp = cv2.imread( MODEL + str(i) + ".png", cv2.IMREAD_GRAYSCALE )
+		Model = cv2.bitwise_and( tmp, tmp, mask = ModelMask )
+		Lights[i] = GetLightDirFromSphere(Calib, bb)
+		calibImages.append( Calib )
+		modelImages.append( Model )
 
-    result_log += 'Lights:\n{}\n'.format( Lights )
+	modelImages = np.array( modelImages )
+	result_log += 'Lights:\n{}\n'.format( Lights )
 
-    # Estimate the normals
-    height = calibImages[0].shape[0]
-    width = calibImages[0].shape[1]
+	# Estimate the normals
+	height = calibImages[0].shape[0]
+	width = calibImages[0].shape[1]
 
-    result_log += 'Height: {}\n'.format( height )
-    result_log += 'Width: {}\n'.format( width )
+	result_log += 'Height: {}\n'.format( height )
+	result_log += 'Width: {}\n'.format( width )
 
-    _, LightsInv = cv2.invert( Lights, flags = cv2.DECOMP_SVD )
+	_, LightsInv = cv2.invert( Lights, flags = cv2.DECOMP_SVD )
 
-    result_log += 'LightsInv:\n{}\n'.format( LightsInv )
+	result_log += 'LightsInv:\n{}\n'.format( LightsInv )
 
-    Normals = np.zeros( (height, width, 3) )
-    Pgrads = np.zeros( (height, width) )
-    Qgrads = np.zeros( (height, width) )
-    for x in range( width ) :
-        for y in range( height ) :
-            I = np.empty( NUM_IMGS )
-            for i in range( NUM_IMGS ) :
-                I[i] = modelImages[i][y, x]
-            n = np.dot( LightsInv, I )
-            p = math.sqrt( (n ** 2).sum() )
-            if p > 0 : n = n / p
-            if n[2] == 0 : n[2] = 1
-            legit = 1
-            for i in range(NUM_IMGS) :
-                legit *= modelImages[i][y, x] >= 0
-            if legit :
-                Normals[y, x] = n
-                Pgrads[y, x] = n[0] / n[2]
-                Qgrads[y, x] = n[1] / n[2]
-            else :
-                Normals[y, x] = [0, 0, 1]
-                Pgrads[y, x] = 0
-                Qgrads[y, x] = 0
+	Normals = np.zeros( (height, width, 3) )
+	Pgrads = np.zeros( (height, width) )
+	Qgrads = np.zeros( (height, width) )
+	for x in range( width ) :
+		for y in range( height ) :
+			I = modelImages[:, y, x]
+			n = np.dot( LightsInv, I )
+			p = math.sqrt( (n ** 2).sum() )
+			if p > 0 : n = n / p
+			if n[2] == 0 : n[2] = 1
+			legit = 1
+			for i in range(NUM_IMGS) :
+				legit *= modelImages[i][y, x] >= 0
+			if legit :
+				Normals[y, x] = n
+				Pgrads[y, x] = n[0] / n[2]
+				Qgrads[y, x] = n[1] / n[2]
+			else :
+				Normals[y, x] = [0, 0, 1]
+				Pgrads[y, x] = 0
+				Qgrads[y, x] = 0
+	cv2.imshow( "Pgrads", Pgrads )
+	cv2.imwrite( 'pgrads.png',  Pgrads*255.99 )
+	cv2.imshow( "Qgrads", Qgrads )
+	cv2.imwrite( 'qgrads.png',  Qgrads*255.99 )
 
-    result_log += 'Pgrads:\n{}\n'.format( list(Pgrads) )
-    cv2.imshow( "Pgrads", Pgrads )
-    cv2.imwrite( 'pgrads.png',  Pgrads*255.99 )
-    cv2.imshow( "Qgrads", Qgrads )
-    cv2.imwrite( 'qgrads.png',  Qgrads*255.99 )
-    # Convert the normal map into an image
-    normalmap_image = cv2.cvtColor( np.array( Normals, dtype=np.float32 ), cv2.COLOR_BGR2RGB )
-    # Write the normal map
-    cv2.imwrite( 'normalmap.png',  normalmap_image*255.99 )
-    # View the normal map
-    cv2.imshow( "Normalmap", normalmap_image )
-    cv2.waitKey()
+	result_log += 'Pgrads : {} [{}; {}]\n'.format(Pgrads.shape, np.amin(Pgrads), np.amax(Pgrads))
+	result_log += 'Qgrads : {} [{}; {}]\n'.format(Qgrads.shape, np.amin(Qgrads), np.amax(Qgrads))
 
-    # Global integration of surface normals
-    Z = GlobalHeights( Pgrads, Qgrads )
-    # Put the different results in a dictionary
-    result = { 'height' : height, 'width' : width, 'normals' : Normals, 'pgrads' : Pgrads, 'qgrads' : Qgrads, 'z' : Z }
-    # Save the result with pickle
-    SaveResult( result )
-    # Return the result
-    return result
+	# Convert the normal map into an image
+	normalmap_image = cv2.cvtColor( np.array( Normals, dtype=np.float32 ), cv2.COLOR_BGR2RGB )
+	# Write the normal map
+	cv2.imwrite( 'normalmap.png',  normalmap_image*255.99 )
+	# View the normal map
+	cv2.imshow( "Normalmap", normalmap_image )
+	cv2.waitKey()
+
+	# Global integration of surface normals
+	Z = GlobalHeights( Pgrads, Qgrads )
+	# Put the different results in a dictionary
+	result = { 'height' : height, 'width' : width, 'normals' : Normals, 'pgrads' : Pgrads, 'qgrads' : Qgrads, 'z' : Z }
+	# Save the result with pickle
+	SaveResult( result )
+	# Return the result
+	return result
 
 # Main application
 if __name__ == '__main__' :
