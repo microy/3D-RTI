@@ -165,7 +165,12 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    result_log << "Pgrads:\n" << Pgrads << endl;
+    double min, max;
+    cv::minMaxLoc(Pgrads, &min, &max);
+    result_log << "Pgrads: (" << Pgrads.rows << ", " << Pgrads.cols << ") " << "[" << min << "; " << max << "]" << endl;
+    cv::minMaxLoc(Qgrads, &min, &max);
+    result_log << "Qgrads: (" << Qgrads.rows << ", " << Qgrads.cols << ") "  << "[" << min << "; " << max << "]" << endl;
+
     cv::imwrite("pgrads.png", Pgrads * 255.99);
     cv::imshow("pgrads.png", Pgrads);
     cv::imwrite("qgrads.png", Qgrads * 255.99);
