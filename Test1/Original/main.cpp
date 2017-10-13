@@ -83,8 +83,8 @@ cv::Rect getBoundingBox(cv::Mat Mask) {
 int main(int argc, char *argv[]) {
 
     const int NUM_IMGS          = 12;
-    const string CALIBRATION    = "../Images/Chrome/chrome.";
-    const string MODEL          = "../Images/Rock/rock.";
+    const string CALIBRATION    = "../Images/chrome/chrome.";
+    const string MODEL          = string("../Images/") + argv[1] + "/" + argv[1] + ".";
 
     ostringstream result_log;
 
