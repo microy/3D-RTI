@@ -101,46 +101,46 @@ def SaveResult( result, filename = 'result.pkl' ) :
 
 # Return the bounding box of the image mask
 def GetBoundingBox( mask ) :
-    _, contours, _ = cv2.findContours( np.copy( mask ), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE )
-    return cv2.boundingRect( contours[0] )
+	_, contours, _ = cv2.findContours( np.copy( mask ), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE )
+	return cv2.boundingRect( contours[0] )
 
 # Compute the light direction for each image
 def GetLightDirFromSphere( Image, boundingbox ) :
-    THRESH = 254
-    x, y, w, h = boundingbox
-    radius = w / 2.0
-    _, Binary = cv2.threshold( Image, THRESH, 255, cv2.THRESH_BINARY )
-    SubImage = Binary[ y:y+h, x:x+w ]
-    m = cv2.moments( SubImage )
-    cx = int( m['m10'] / m['m00'] )
-    cy = int( m['m01'] / m['m00'] )
-    x = (cy - radius) / radius
-    y = (cx - radius) / radius
-    z = math.sqrt( 1.0 - pow(x, 2.0) - pow(y, 2.0) )
-    return [ x, y, z ]
+	THRESH = 254
+	x, y, w, h = boundingbox
+	radius = w / 2.0
+	_, Binary = cv2.threshold( Image, THRESH, 255, cv2.THRESH_BINARY )
+	SubImage = Binary[ y:y+h, x:x+w ]
+	m = cv2.moments( SubImage )
+	cx = int( m['m10'] / m['m00'] )
+	cy = int( m['m01'] / m['m00'] )
+	x = (cy - radius) / radius
+	y = (cx - radius) / radius
+	z = math.sqrt( 1.0 - pow(x, 2.0) - pow(y, 2.0) )
+	return [ x, y, z ]
 
 # Compute the depth map
 def GlobalHeights( Pgrads,  Qgrads) :
-    l = 1.0
-    mu = 1.0
-    rows = Pgrads.shape[0]
-    cols = Pgrads.shape[1]
-    P = cv2.dft( Pgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
-    Q = cv2.dft( Qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
-    Z = np.zeros( (rows, cols, 2) )
-    for i in range(rows) :
-        for j in range(cols) :
-            if i == 0 or j == 0 : continue
-            u = math.sin( i * 2.0 * math.pi / rows )
-            v = math.sin( j * 2.0 * math.pi / cols )
-            uv = u ** 2 + v ** 2
-            d = ( 1 + l ) * uv + mu * ( uv ** 2 )
-            Z[i, j, 0] = ( u*P[i, j, 1] + v*Q[i, j, 1]) / d
-            Z[i, j, 1] = (-u*P[i, j, 0] - v*Q[i, j, 0]) / d
-    Z[0, 0, 0] = 0.0
-    Z[0, 0, 1] = 0.0
-    Z = cv2.dft( Z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
-    return Z
+	l = 1.0
+	mu = 1.0
+	rows = Pgrads.shape[0]
+	cols = Pgrads.shape[1]
+	P = cv2.dft( Pgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
+	Q = cv2.dft( Qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
+	Z = np.zeros( (rows, cols, 2) )
+	for i in range(rows) :
+		for j in range(cols) :
+			if i == 0 or j == 0 : continue
+			u = math.sin( i * 2.0 * math.pi / rows )
+			v = math.sin( j * 2.0 * math.pi / cols )
+			uv = u ** 2 + v ** 2
+			d = ( 1 + l ) * uv + mu * ( uv ** 2 )
+			Z[i, j, 0] = ( u*P[i, j, 1] + v*Q[i, j, 1]) / d
+			Z[i, j, 1] = (-u*P[i, j, 0] - v*Q[i, j, 0]) / d
+	Z[0, 0, 0] = 0.0
+	Z[0, 0, 1] = 0.0
+	Z = cv2.dft( Z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
+	return Z
 
 # Photometic Stereo
 def PhotometicStereo() :
@@ -226,26 +226,26 @@ def PhotometicStereo() :
 # Main application
 if __name__ == '__main__' :
 
-    # Load previous result
-#    result = LoadPreviousResult()
-    # Or compute the photometric stereo
-#    if not result : result = PhotometicStereo()
-    result = PhotometicStereo()
+	# Load previous result
+#	result = LoadPreviousResult()
+	# Or compute the photometric stereo
+#	if not result : result = PhotometicStereo()
+	result = PhotometicStereo()
 
-    # Write the computation log
-    with open( 'result.log', 'w' ) as file :
-        file.write( result_log )
+	# Write the computation log
+	with open( 'result.log', 'w' ) as file :
+		file.write( result_log )
 
-    # Export the result to an OBJ file
-    output = ''
-    for x in range( result['width'] ) :
-        for y in range( result['height'] ) :
-            output += 'v {} {} {}\n'.format( float(x), float(y), result['z'][y ,x] )
-    with open( 'result.obj', 'w' ) as file :
-        file.write( output )
+	# Export the result to an OBJ file
+	output = ''
+	for x in range( result['width'] ) :
+		for y in range( result['height'] ) :
+			output += 'v {} {} {}\n'.format( float(x), float(y), result['z'][y ,x] )
+	with open( 'result.obj', 'w' ) as file :
+		file.write( output )
 
-    # Triangulate the mesh
-#    vertices, faces = SurfaceToMesh( height, width, Z )
+	# Triangulate the mesh
+#	vertices, faces = SurfaceToMesh( height, width, Z )
 
-    # Export the mesh to a PLY file
-#    WritePly( "test.obj", vertices, faces )
+	# Export the mesh to a PLY file
+#	WritePly( "test.obj", vertices, faces )
