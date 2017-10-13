@@ -3,15 +3,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Image files
+*.png
+!Images/*.png
+
 # 3D mesh files
 *.ply
 *.obj
-
-# Pickle files
-*.pkl
-
-# Log files
-*.log
 
 # CMake files
 CMakeCache.txt
