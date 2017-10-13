@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -5,8 +6,6 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-
-#include <fstream>
 
 using namespace cv;
 using namespace std;
@@ -32,10 +31,6 @@ cv::Mat globalHeights(cv::Mat Pgrads, cv::Mat Qgrads) {
                 float d = (1.0f + lambda)*uv + mu*pow(uv,2);
                 Z.at<cv::Vec2f>(i, j)[0] = (u*P.at<cv::Vec2f>(i, j)[1] + v*Q.at<cv::Vec2f>(i, j)[1]) / d;
                 Z.at<cv::Vec2f>(i, j)[1] = (-u*P.at<cv::Vec2f>(i, j)[0] - v*Q.at<cv::Vec2f>(i, j)[0]) / d;
-    //            if( i>240 && i<245 && j>240 && j<245) {
-    //                cout << Z.at<cv::Vec2f>(i, j) << endl << flush;
-    //            }
-
             }
         }
     }
@@ -46,8 +41,6 @@ cv::Mat globalHeights(cv::Mat Pgrads, cv::Mat Qgrads) {
 
     cv::dft(Z, Z, cv::DFT_INVERSE | cv::DFT_SCALE | cv::DFT_REAL_OUTPUT);
 
-//    cout << Z.at<cv::Vec2f>(0, 0) << endl << flush;
-//    cout << Z.at<float>(0, 0) << endl << flush;
     return Z;
 }
 
@@ -86,16 +79,12 @@ int main(int argc, char *argv[]) {
     const string CALIBRATION    = "../Images/chrome/chrome.";
     const string MODEL          = string("../Images/") + argv[1] + "/" + argv[1] + ".";
 
-    ostringstream result_log;
-
     vector<Mat> calibImages;
     vector<Mat> modelImages;
     Mat Lights(NUM_IMGS, 3, CV_32F);
     Mat Mask = imread(CALIBRATION + "mask.png", CV_LOAD_IMAGE_GRAYSCALE);
     Mat ModelMask = imread(MODEL + "mask.png", CV_LOAD_IMAGE_GRAYSCALE);
     Rect bb = getBoundingBox(Mask);
-
-    result_log << "Bounding box: " << bb << endl;
 
     for (int i = 0; i < NUM_IMGS; i++) {
         Mat Calib = imread(CALIBRATION + to_string(i) + ".png",
@@ -112,19 +101,12 @@ int main(int argc, char *argv[]) {
         modelImages.push_back(Model);
     }
 
-    result_log << "Lights:\n" << Lights << endl;
-
     const int height    = calibImages[0].rows;
     const int width     = calibImages[0].cols;
-
-    result_log << "Height: " << height << endl;
-    result_log << "Width: " << width << endl;
 
     /* light directions, surface normals, p,q gradients */
     cv::Mat LightsInv;
     cv::invert(Lights, LightsInv, cv::DECOMP_SVD);
-
-    result_log << "LightsInv:\n" << LightsInv << endl;
 
     cv::Mat Normals(height, width, CV_32FC3, cv::Scalar::all(0));
     cv::Mat Pgrads(height, width, CV_32F, cv::Scalar::all(0));
@@ -139,10 +121,6 @@ int main(int argc, char *argv[]) {
             }
             cv::Mat n = LightsInv * cv::Mat(I);
             float p = sqrt(cv::Mat(n).dot(n));
-
-            // if( x>240 && x<245 && y>240 && y<245) {
-            //     cout << x << "-" << y << " : " << n.reshape(3) << p << endl << flush;
-            // }
 
             if (p > 0) { n = n/p; }
             if (n.at<float>(2,0) == 0) { n.at<float>(2,0) = 1.0; }
@@ -165,26 +143,14 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    double min, max;
-    cv::minMaxLoc(Pgrads, &min, &max);
-    result_log << "Pgrads: (" << Pgrads.rows << ", " << Pgrads.cols << ") " << "[" << min << "; " << max << "]" << endl;
-    cv::minMaxLoc(Qgrads, &min, &max);
-    result_log << "Qgrads: (" << Qgrads.rows << ", " << Qgrads.cols << ") "  << "[" << min << "; " << max << "]" << endl;
-
-    cv::imwrite("pgrads.png", Pgrads * 255.99);
-    cv::imshow("pgrads.png", Pgrads);
-    cv::imwrite("qgrads.png", Qgrads * 255.99);
-    cv::imshow("qgrads.png", Qgrads);
-
     cv::Mat Normalmap;
     cv::cvtColor(Normals, Normalmap, CV_BGR2RGB);
     cv::imwrite("normalmap.png", Normalmap * 255.99);
-    cv::imshow("Normalmap", Normalmap);
 
     /* global integration of surface normals */
     cv::Mat Z = globalHeights(Pgrads, Qgrads);
 
-    ofstream file( "original.obj" );
+    ofstream file( "mesh.obj" );
     for (int y=0; y<height; y++) {
         for (int x=0; x<width; x++) {
             file << "v " << (float)x << " " << (float)y << " " << Z.at<float>(y,x) << endl;
@@ -192,10 +158,5 @@ int main(int argc, char *argv[]) {
     }
     file.close();
 
-    ofstream result_log_file( "result.log" );
-    result_log_file << result_log.str();
-    result_log_file.close();
-
-    cv::waitKey();
     return 0;
 }
