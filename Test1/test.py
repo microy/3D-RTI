@@ -2,74 +2,15 @@
 # -*- coding:utf-8 -*-
 
 #
-# Calibrate the light
+# Source adapted from https://github.com/NewProggie/Photometric-Stereo
 #
 
 # External dependencies
 import math
-import struct as st
 import sys
 import cv2
 import numpy as np
-
-# Convert the surface to a triangular mesh
-def ExportMesh( filename, height, width, Z ) :
-	# Generate the X-Y grid
-	X, Y = np.meshgrid( range(width), range(height) )
-	# Create the vertices
-	vertices = np.array( [ X.flatten(), Y.flatten(), Z.flatten() ] ).T
-	# Array of vertex indices
-	vindex = np.arange( height * width ).reshape( height, width )
-	# Find the diagonal that minimizes the Z difference
-	left_diagonal = np.absolute( Z[1:,1:] - Z[:-1,:-1] ) > np.absolute( Z[1:,:-1] - Z[:-1,1:] )
-	# Flatten the array
-	left_diagonal = left_diagonal.flatten()
-	# Double the values (1 square -> 2 triangles)
-	left_diagonal = np.dstack( (left_diagonal, left_diagonal) ).flatten()
-	# Initialize the right diagonal face array
-	faces = np.empty( ( 2 * (height - 1) * (width - 1), 3 ), dtype=np.int )
-	# Initialize the left diagonal face array
-	left_faces = np.empty( ( 2 * (height - 1) * (width - 1), 3 ), dtype=np.int )
-	# Right diagonal
-	# Create lower triangle faces
-	faces[ ::2, 0 ] = vindex[   : height - 1,   : width - 1 ].flatten()
-	faces[ ::2, 1 ] = vindex[   : height - 1, 1 : width     ].flatten()
-	faces[ ::2, 2 ] = vindex[ 1 : height    , 1 : width     ].flatten()
-	# Create upper triangle faces
-	faces[ 1::2, 0 ] = vindex[   : height - 1,   : width - 1 ].flatten()
-	faces[ 1::2, 1 ] = vindex[ 1 : height    , 1 : width     ].flatten()
-	faces[ 1::2, 2 ] = vindex[ 1 : height    ,   : width - 1 ].flatten()
-	# Left diagonal
-	# Create lower triangle faces
-	left_faces[ ::2, 0 ] = vindex[   : height - 1,   : width - 1 ].flatten()
-	left_faces[ ::2, 1 ] = vindex[   : height - 1, 1 : width     ].flatten()
-	left_faces[ ::2, 2 ] = vindex[ 1 : height    ,   : width - 1 ].flatten()
-	# Create upper triangle faces
-	left_faces[ 1::2, 0 ] = vindex[   : height - 1, 1 : width     ].flatten()
-	left_faces[ 1::2, 1 ] = vindex[ 1 : height    , 1 : width     ].flatten()
-	left_faces[ 1::2, 2 ] = vindex[ 1 : height    ,   : width - 1 ].flatten()
-	# Merge left and right diagonal faces
-	faces[ left_diagonal ] = left_faces[ left_diagonal ]
-	# Define the PLY file header
-	header = '''ply
-format binary_little_endian 1.0
-element vertex {vertex_number}
-property float x
-property float y
-property float z
-element face {face_number}
-property list int int vertex_indices
-end_header\n'''.format( vertex_number = len( vertices ), face_number = len( faces ) )
-	# Open the target PLY file
-	with open( filename, 'wb' ) as ply_file :
-		# Write the header
-		ply_file.write( header.encode( 'UTF-8' ) )
-		# Write the vertex data
-		ply_file.write( st.pack( '3f' * len( vertices ), *vertices.flatten() ) )
-		# Add the number of indices to every face
-		faces = np.insert( faces, 0, 3, axis = 1 )
-		# Write the face data
-		ply_file.write( st.pack( '4i' * len( faces ), *faces.flatten() ) )
+import Mesh
 
 # Return the bounding box of the image mask
 def GetBoundingBox( mask ) :
@@ -167,4 +108,4 @@ if __name__ == '__main__' :
 	# Global integration of surface normals
 	Z = GlobalHeights( Pgrads, Qgrads )
 	# Triangulate and export the mesh to a PLY file
-	ExportMesh( "mesh.ply", height, width, Z )
+	Mesh.ExportMesh( height, width, Z, 'mesh.ply' )
