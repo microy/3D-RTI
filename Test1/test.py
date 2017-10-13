@@ -130,13 +130,13 @@ def GlobalHeights( Pgrads,  Qgrads) :
 	Z = np.zeros( (rows, cols, 2) )
 	for i in range(rows) :
 		for j in range(cols) :
-			if i == 0 or j == 0 : continue
-			u = math.sin( i * 2.0 * math.pi / rows )
-			v = math.sin( j * 2.0 * math.pi / cols )
-			uv = u ** 2 + v ** 2
-			d = ( 1 + l ) * uv + mu * ( uv ** 2 )
-			Z[i, j, 0] = ( u*P[i, j, 1] + v*Q[i, j, 1]) / d
-			Z[i, j, 1] = (-u*P[i, j, 0] - v*Q[i, j, 0]) / d
+			if i != 0 or j != 0 :
+				u = math.sin( i * 2.0 * math.pi / rows )
+				v = math.sin( j * 2.0 * math.pi / cols )
+				uv = u ** 2 + v ** 2
+				d = ( 1 + l ) * uv + mu * ( uv ** 2 )
+				Z[i, j, 0] = ( u*P[i, j, 1] + v*Q[i, j, 1]) / d
+				Z[i, j, 1] = (-u*P[i, j, 0] - v*Q[i, j, 0]) / d
 	Z[0, 0, 0] = 0.0
 	Z[0, 0, 1] = 0.0
 	Z = cv2.dft( Z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
