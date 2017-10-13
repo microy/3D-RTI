@@ -7,13 +7,9 @@
 
 # External dependencies
 import math
-import os
-import pickle
 import struct as st
 import cv2
 import numpy as np
-
-result_log = ''
 
 # Source image parameters
 NUM_IMGS = 12
@@ -79,19 +75,6 @@ end_header\n'''.format( vertex_number = len( vertices ), face_number = len( face
 		# Write the face data
 		ply_file.write( st.pack( '4i' * len( faces ), *faces.flatten() ) )
 
-# Load previous result
-def LoadPreviousResult( filename = 'result.pkl' ) :
-	result = None
-	if os.path.isfile( filename ) :
-		with open( filename, 'rb' ) as result_file :
-			result = pickle.load( result_file )
-	return result
-
-# Save the result
-def SaveResult( result, filename = 'result.pkl' ) :
-	with open( filename, 'wb') as result_file :
-		pickle.dump( result, result_file, pickle.HIGHEST_PROTOCOL )
-
 # Return the bounding box of the image mask
 def GetBoundingBox( mask ) :
 	_, contours, _ = cv2.findContours( np.copy( mask ), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE )
@@ -135,8 +118,8 @@ def GlobalHeights( Pgrads,  Qgrads) :
 	Z = cv2.dft( Z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
 	return Z
 
-# Photometic Stereo
-def PhotometicStereo() :
+# Main application
+if __name__ == '__main__' :
 	# Calibrate the light
 	calibImages = []
 	modelImages = []
@@ -144,10 +127,6 @@ def PhotometicStereo() :
 	mask = cv2.imread( CALIBRATION + "mask.png", cv2.IMREAD_GRAYSCALE )
 	ModelMask = cv2.imread( MODEL + "mask.png", cv2.IMREAD_GRAYSCALE )
 	bb = GetBoundingBox( mask )
-
-	global result_log
-	result_log += 'Bounding box: {}\n'.format( bb )
-
 	for i in range( NUM_IMGS ) :
 		Calib = cv2.imread( CALIBRATION + str(i) + ".png", cv2.IMREAD_GRAYSCALE )
 		tmp = cv2.imread( MODEL + str(i) + ".png", cv2.IMREAD_GRAYSCALE )
@@ -155,21 +134,11 @@ def PhotometicStereo() :
 		Lights[i] = GetLightDirFromSphere(Calib, bb)
 		calibImages.append( Calib )
 		modelImages.append( Model )
-
 	modelImages = np.array( modelImages )
-	result_log += 'Lights:\n{}\n'.format( Lights )
-
 	# Estimate the normals
 	height = calibImages[0].shape[0]
 	width = calibImages[0].shape[1]
-
-	result_log += 'Height: {}\n'.format( height )
-	result_log += 'Width: {}\n'.format( width )
-
 	_, LightsInv = cv2.invert( Lights, flags = cv2.DECOMP_SVD )
-
-	result_log += 'LightsInv:\n{}\n'.format( LightsInv )
-
 	Normals = np.zeros( (height, width, 3) )
 	Pgrads = np.zeros( (height, width) )
 	Qgrads = np.zeros( (height, width) )
@@ -191,44 +160,11 @@ def PhotometicStereo() :
 				Normals[y, x] = [0, 0, 1]
 				Pgrads[y, x] = 0
 				Qgrads[y, x] = 0
-	cv2.imshow( "Pgrads", Pgrads )
-	cv2.imwrite( 'pgrads.png',  Pgrads*255.99 )
-	cv2.imshow( "Qgrads", Qgrads )
-	cv2.imwrite( 'qgrads.png',  Qgrads*255.99 )
-
-	result_log += 'Pgrads : {} [{}; {}]\n'.format(Pgrads.shape, np.amin(Pgrads), np.amax(Pgrads))
-	result_log += 'Qgrads : {} [{}; {}]\n'.format(Qgrads.shape, np.amin(Qgrads), np.amax(Qgrads))
-
 	# Convert the normal map into an image
-	normalmap_image = cv2.cvtColor( Normals.astype( np.float32 ), cv2.COLOR_BGR2RGB )
+	normalmap_image = cv2.cvtColor( Normals.astype( np.float32 ), cv2.COLOR_BGR2RGB ) * 255.99
 	# Write the normal map
-	cv2.imwrite( 'normalmap.png',  normalmap_image * 255.99 )
-	# View the normal map
-	cv2.imshow( "Normalmap", normalmap_image )
-	cv2.waitKey()
-
+	cv2.imwrite( 'normalmap.png',  normalmap_image )
 	# Global integration of surface normals
 	Z = GlobalHeights( Pgrads, Qgrads )
-	# Put the different results in a dictionary
-	result = { 'height' : height, 'width' : width, 'normals' : Normals, 'pgrads' : Pgrads, 'qgrads' : Qgrads, 'z' : Z }
-	# Save the result with pickle
-	SaveResult( result )
-	# Return the result
-	return result
-
-# Main application
-if __name__ == '__main__' :
-
-	# Load previous result
-	result = LoadPreviousResult()
-	# Or compute the photometric stereo
-	if not result : result = PhotometicStereo()
-
-#	result = PhotometicStereo()
-
-	# Write the computation log
-	with open( 'result.log', 'w' ) as file :
-		file.write( result_log )
-
 	# Triangulate and export the mesh to a PLY file
-	ExportMesh( "result.ply", result['height'], result['width'], result['z'] )
+	ExportMesh( "mesh.ply", height, width, Z )
