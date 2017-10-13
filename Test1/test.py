@@ -8,20 +8,16 @@
 # External dependencies
 import math
 import struct as st
+import sys
 import cv2
 import numpy as np
-
-# Source image parameters
-NUM_IMGS = 12
-CALIBRATION = "Images/chrome/chrome."
-MODEL = "Images/rock/rock."
 
 # Convert the surface to a triangular mesh
 def ExportMesh( filename, height, width, Z ) :
 	# Generate the X-Y grid
 	X, Y = np.meshgrid( range(width), range(height) )
 	# Create the vertices
-	vertices = np.array( (X.flatten(), Y.flatten(), Z.flatten()) ).T
+	vertices = np.array( [ X.flatten(), Y.flatten(), Z.flatten() ] ).T
 	# Array of vertex indices
 	vindex = np.arange( height * width ).reshape( height, width )
 	# Find the diagonal that minimizes the Z difference
@@ -120,6 +116,10 @@ def GlobalHeights( Pgrads,  Qgrads) :
 
 # Main application
 if __name__ == '__main__' :
+	# Source image parameters
+	NUM_IMGS = 12
+	CALIBRATION = 'Images/chrome/chrome.'
+	MODEL = 'Images/' + sys.argv[1] + '/' + sys.argv[1] + '.'
 	# Calibrate the light
 	calibImages = []
 	modelImages = []
