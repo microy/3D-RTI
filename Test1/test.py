@@ -16,8 +16,8 @@ result_log = ''
 
 # Source image parameters
 NUM_IMGS = 12
-CALIBRATION = "Images/Chrome/chrome."
-MODEL = "Images/Rock/rock."
+CALIBRATION = "Images/chrome/chrome."
+MODEL = "Images/rock/rock."
 
 # Convert the surface to a triangular mesh
 def SurfaceToMesh( height, width, Z ) :
