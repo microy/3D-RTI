@@ -9,6 +9,7 @@
 import math
 import os
 import pickle
+import struct as st
 import cv2
 import numpy as np
 
@@ -20,16 +21,13 @@ CALIBRATION = "Images/chrome/chrome."
 MODEL = "Images/rock/rock."
 
 # Convert the surface to a triangular mesh
-def SurfaceToMesh( height, width, Z ) :
+def ExportMesh( filename, height, width, Z ) :
 	# Generate the X-Y grid
 	X, Y = np.meshgrid( range(width), range(height) )
 	# Create the vertices
 	vertices = np.array( (X.flatten(), Y.flatten(), Z.flatten()) ).T
-	# Get the size of the grid
-	nb_lines = len( X )
-	nb_cols = len( Y )
 	# Array of vertex indices
-	vindex = np.array( range( nb_lines * nb_cols ) ).reshape( nb_lines, nb_cols )
+	vindex = np.arange( height * width ).reshape( height, width )
 	# Find the diagonal that minimizes the Z difference
 	left_diagonal = np.absolute( Z[1:,1:] - Z[:-1,:-1] ) > np.absolute( Z[1:,:-1] - Z[:-1,1:] )
 	# Flatten the array
@@ -37,34 +35,29 @@ def SurfaceToMesh( height, width, Z ) :
 	# Double the values (1 square -> 2 triangles)
 	left_diagonal = np.dstack( (left_diagonal, left_diagonal) ).flatten()
 	# Initialize the right diagonal face array
-	faces = np.empty( ( 2 * (nb_lines - 1) * (nb_cols - 1), 3 ), dtype=np.int )
+	faces = np.empty( ( 2 * (height - 1) * (width - 1), 3 ), dtype=np.int )
 	# Initialize the left diagonal face array
-	left_faces = np.empty( ( 2 * (nb_lines - 1) * (nb_cols - 1), 3 ), dtype=np.int )
+	left_faces = np.empty( ( 2 * (height - 1) * (width - 1), 3 ), dtype=np.int )
 	# Right diagonal
 	# Create lower triangle faces
-	faces[ ::2, 0 ] = vindex[   : nb_lines - 1,   : nb_cols - 1 ].flatten()
-	faces[ ::2, 1 ] = vindex[   : nb_lines - 1, 1 : nb_cols     ].flatten()
-	faces[ ::2, 2 ] = vindex[ 1 : nb_lines    , 1 : nb_cols     ].flatten()
+	faces[ ::2, 0 ] = vindex[   : height - 1,   : width - 1 ].flatten()
+	faces[ ::2, 1 ] = vindex[   : height - 1, 1 : width     ].flatten()
+	faces[ ::2, 2 ] = vindex[ 1 : height    , 1 : width     ].flatten()
 	# Create upper triangle faces
-	faces[ 1::2, 0 ] = vindex[   : nb_lines - 1,   : nb_cols - 1 ].flatten()
-	faces[ 1::2, 1 ] = vindex[ 1 : nb_lines    , 1 : nb_cols     ].flatten()
-	faces[ 1::2, 2 ] = vindex[ 1 : nb_lines    ,   : nb_cols - 1 ].flatten()
+	faces[ 1::2, 0 ] = vindex[   : height - 1,   : width - 1 ].flatten()
+	faces[ 1::2, 1 ] = vindex[ 1 : height    , 1 : width     ].flatten()
+	faces[ 1::2, 2 ] = vindex[ 1 : height    ,   : width - 1 ].flatten()
 	# Left diagonal
 	# Create lower triangle faces
-	left_faces[ ::2, 0 ] = vindex[   : nb_lines - 1,   : nb_cols - 1 ].flatten()
-	left_faces[ ::2, 1 ] = vindex[   : nb_lines - 1, 1 : nb_cols     ].flatten()
-	left_faces[ ::2, 2 ] = vindex[ 1 : nb_lines    ,   : nb_cols - 1 ].flatten()
+	left_faces[ ::2, 0 ] = vindex[   : height - 1,   : width - 1 ].flatten()
+	left_faces[ ::2, 1 ] = vindex[   : height - 1, 1 : width     ].flatten()
+	left_faces[ ::2, 2 ] = vindex[ 1 : height    ,   : width - 1 ].flatten()
 	# Create upper triangle faces
-	left_faces[ 1::2, 0 ] = vindex[   : nb_lines - 1, 1 : nb_cols     ].flatten()
-	left_faces[ 1::2, 1 ] = vindex[ 1 : nb_lines    , 1 : nb_cols     ].flatten()
-	left_faces[ 1::2, 2 ] = vindex[ 1 : nb_lines    ,   : nb_cols - 1 ].flatten()
+	left_faces[ 1::2, 0 ] = vindex[   : height - 1, 1 : width     ].flatten()
+	left_faces[ 1::2, 1 ] = vindex[ 1 : height    , 1 : width     ].flatten()
+	left_faces[ 1::2, 2 ] = vindex[ 1 : height    ,   : width - 1 ].flatten()
 	# Merge left and right diagonal faces
 	faces[ left_diagonal ] = left_faces[ left_diagonal ]
-	# Return the mesh
-	return vertices, faces
-
-# Write the surface to a Stanford PLY file
-def WritePly( filename, vertices, faces ) :
 	# Define the PLY file header
 	header = '''ply
 format binary_little_endian 1.0
@@ -207,9 +200,9 @@ def PhotometicStereo() :
 	result_log += 'Qgrads : {} [{}; {}]\n'.format(Qgrads.shape, np.amin(Qgrads), np.amax(Qgrads))
 
 	# Convert the normal map into an image
-	normalmap_image = cv2.cvtColor( np.array( Normals, dtype=np.float32 ), cv2.COLOR_BGR2RGB )
+	normalmap_image = cv2.cvtColor( Normals.astype( np.float32 ), cv2.COLOR_BGR2RGB )
 	# Write the normal map
-	cv2.imwrite( 'normalmap.png',  normalmap_image*255.99 )
+	cv2.imwrite( 'normalmap.png',  normalmap_image * 255.99 )
 	# View the normal map
 	cv2.imshow( "Normalmap", normalmap_image )
 	cv2.waitKey()
@@ -227,25 +220,15 @@ def PhotometicStereo() :
 if __name__ == '__main__' :
 
 	# Load previous result
-#	result = LoadPreviousResult()
+	result = LoadPreviousResult()
 	# Or compute the photometric stereo
-#	if not result : result = PhotometicStereo()
-	result = PhotometicStereo()
+	if not result : result = PhotometicStereo()
+
+#	result = PhotometicStereo()
 
 	# Write the computation log
 	with open( 'result.log', 'w' ) as file :
 		file.write( result_log )
 
-	# Export the result to an OBJ file
-	output = ''
-	for x in range( result['width'] ) :
-		for y in range( result['height'] ) :
-			output += 'v {} {} {}\n'.format( float(x), float(y), result['z'][y ,x] )
-	with open( 'result.obj', 'w' ) as file :
-		file.write( output )
-
-	# Triangulate the mesh
-#	vertices, faces = SurfaceToMesh( height, width, Z )
-
-	# Export the mesh to a PLY file
-#	WritePly( "test.obj", vertices, faces )
+	# Triangulate and export the mesh to a PLY file
+	ExportMesh( "result.ply", result['height'], result['width'], result['z'] )
