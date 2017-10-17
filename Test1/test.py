@@ -102,9 +102,11 @@ if __name__ == '__main__' :
 				Pgrads[y, x] = 0
 				Qgrads[y, x] = 0
 	# Convert the normal map into an image
-	normalmap_image = cv2.cvtColor( Normals.astype( np.float32 ), cv2.COLOR_BGR2RGB ) * 255.99
+	normalmap_image = cv2.cvtColor( Normals.astype( np.float32 ), cv2.COLOR_BGR2RGB )
 	# Write the normal map
-	cv2.imwrite( 'normalmap.png',  normalmap_image )
+	cv2.imwrite( 'normalmap.png',  normalmap_image  * 255.99 )
+	cv2.imshow( 'normalmap.png',  normalmap_image )
+	cv2.waitKey()
 	# Global integration of surface normals
 	Z = GlobalHeights( Pgrads, Qgrads )
 	# Triangulate and export the mesh to a PLY file
