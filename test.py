@@ -4,6 +4,7 @@
 # External dependencies
 import glob
 import math
+import os
 import sys
 import cv2
 import numpy as np
@@ -20,15 +21,26 @@ def ReadRTIFiles( path ) :
 		# Read each light position
 		for line in file :
 			lights.append( line.split()[1:4] )
+	# Convert the light position list to a numpy array
+	lights = np.array( lights, dtype=np.float )
 	# Find the image files
-	image_filenames = sorted( glob.glob( '{}/*.png'.format( path ) ) )
+	image_filenames = sorted( glob.glob( '{}/Image_*.png'.format( path ) ) )
 	# Read the image files
 	images = []
 	for filename in image_filenames :
 		# Read the image
 		images.append( cv2.imread( filename, cv2.IMREAD_GRAYSCALE ) )
+	# Convert the images list into a numpy array
+	images = np.array( images )
+	# Test if a mask image is present
+	filename = '{}/mask.png'.format( path )
+	if os.path.isfile( filename ) :
+		# Read the mask image
+		mask = cv2.imread( filename, cv2.IMREAD_GRAYSCALE )
+		# Apply the mask to every image
+		images[ :, mask == 0 ] = 0
 	# The return the light positions and the images
-	return np.array( lights, dtype=np.float ), np.array( images )
+	return lights, images
 
 # Estimate the normals
 def GetNormalMap( lights, images ) :
@@ -60,10 +72,11 @@ def GetNormalMap( lights, images ) :
 				Pgrads[y, x] = 0
 				Qgrads[y, x] = 0
 	# Convert the normal map into an image
-	normalmap_image = cv2.cvtColor( normals.astype( np.float32 ), cv2.COLOR_BGR2RGB ) * 255.99
+	normalmap_image = cv2.cvtColor( normals.astype( np.float32 ), cv2.COLOR_BGR2RGB )
 	# Write the normal map
-	cv2.imwrite( 'normalmap.png',  normalmap_image )
+	cv2.imwrite( 'normalmap.png',  normalmap_image  * 255.99 )
 	cv2.imshow( 'normalmap.png',  normalmap_image )
+	cv2.waitKey()
 	# Return the normals
 	return normals
 
