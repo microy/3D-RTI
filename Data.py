@@ -2,41 +2,42 @@
 
 # External dependencies
 import glob
-import os
 import cv2
 import numpy as np
-import Mask
 
-# Read the RTI files (images + light positions)
-def ReadRTIFiles( path ) :
-	# Find the light position file
+# Read the RTI light positions file
+def ReadLights( path ) :
+	# Find the file
 	filename = glob.glob( '{}/*.lp'.format( path ) )[0]
-	# Read the light position file
+	# Read the file
 	lights = []
-	with open( filename, 'r' ) as file :
+	with open( filename, 'r' ) as light_file :
 		# Read the first line (image number)
-		file.readline()
+		light_file.readline()
 		# Read each light position
-		for line in file :
+		for line in light_file :
 			lights.append( line.split()[1:4] )
-	# Convert the light position list to a numpy array
-	lights = np.array( lights, dtype=np.float )
-	# Find the image files
-	filename = sorted( glob.glob( '{}/Image_*.png'.format( path ) ) )
+	# Return the light positions into a numpy array
+	return np.array( lights, np.float )
+
+# Read the RTI image files
+def ReadImages( path ) :
+	# Find the PNG image files in the given path
+	image_files = sorted( glob.glob( '{}/*.png'.format( path ) ) )
+	# Find the mask image
+	mask_file = [ f for f in image_files if f.endswith( 'mask.png' ) ][0]
+	# Remove the mask image from the image list
+	image_files.remove( mask_file )
 	# Read the image files
 	images = []
-	for file in filename :
+	for f in image_files :
 		# Read the image
-		images.append( cv2.imread( file, cv2.IMREAD_GRAYSCALE ) )
+		images.append( cv2.imread( f, cv2.IMREAD_GRAYSCALE ) )
 	# Convert the images list into a numpy array
 	images = np.array( images )
-	# Test if a mask image is present
-	filename = '{}/mask.png'.format( path )
-	if os.path.isfile( filename ) :
-		# Read the mask image
-		mask = cv2.imread( filename, cv2.IMREAD_GRAYSCALE )
-		# Apply the mask to every image
-		images[ :, mask == 0 ] = 0
-	else : Mask.CreateMask( images )
-	# The return the light positions and the images
-	return lights, images
+	# Read the mask image
+	mask = cv2.imread( mask_file, cv2.IMREAD_GRAYSCALE )
+	# Apply the mask to every image
+	images[ :, mask == 0 ] = 0
+	# Return the images
+	return images

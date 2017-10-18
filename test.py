@@ -13,7 +13,8 @@ import Stereo
 if __name__ == '__main__' :
 	# Read input files
 	print( 'Reading input data...' )
-	lights, images = Data.ReadRTIFiles( sys.argv[1] )
+	lights = Data.ReadLights( sys.argv[1] )
+	images = Data.ReadImages( sys.argv[1] )
 	# Compute normal map
 	print( 'Computing normal map...' )
 	normals, pgrads, qgrads = Stereo.GetNormalMap( lights, images )
@@ -25,4 +26,5 @@ if __name__ == '__main__' :
 	print( 'Computing depth map...' )
 	z = Stereo.GetDepthMap( pgrads, qgrads )
 	# Triangulate the depth map, and export the mesh to a PLY file
+	print( 'Exporting mesh...' )
 	Mesh.ExportMesh( z, 'mesh.ply' )
