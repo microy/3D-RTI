@@ -5,7 +5,9 @@ import struct as st
 import numpy as np
 
 # Create a mesh from a regular grid, compute the normals, and export it to a PLY file
-def ExportMesh( height, width, Z, filename ) :
+def ExportMesh( Z, filename ) :
+	# Get grid size
+	height, width = Z.shape[:2]
 # Triangulate the grid
 	# Generate the X-Y grid
 	X, Y = np.meshgrid( np.arange( width ), np.arange( height ) )
