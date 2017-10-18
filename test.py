@@ -57,29 +57,16 @@ def GetNormalMap( lights, images ) :
 	qgrads = np.zeros( (height, width) )
 	# Compute the normal for each pixel
 	for x in range( width ) :
-#		Ib = images[ :, :, x ]
-#		n = np.dot( lights_inv, Ib[:] )
-#		p = np.sqrt( (n ** 2).sum( axis=1 ) )
-#		print( Ib.shape, n.shape, p.shape )
-		for y in range( height ) :
-			I = images[:, y, x]
-			n = np.dot( lights_inv, I )
-			p = math.sqrt( (n ** 2).sum() )
-#			if y == 0 : print( '---', I.shape, n.shape, p )
-			if p > 0 : n = n / p
-			if n[2] == 0 : n[2] = 1
-			legit = 1
-			for i in range( len( images ) ) :
-				legit *= images[i][y, x] >= 0
-			if legit :
-				normals[y, x] = n
-				pgrads[y, x] = n[0] / n[2]
-				qgrads[y, x] = n[1] / n[2]
-			else :
-				normals[y, x] = [0, 0, 1]
-				pgrads[y, x] = 0
-				qgrads[y, x] = 0
-	# Return the normals
+		Ib = images[ :, :, x ]
+		n = np.dot( lights_inv, Ib[:,:] ).T
+		p = np.sqrt( (n ** 2).sum( axis = 1 ) )
+		for i in range ( 3 ) :
+			n[:,i] = np.where( p > 0, n[:,i] / p, n[:,i] )
+		n[:,2] = np.where( n[:,2] == 0, 1, n[:,2] )
+		normals[:,x] = n
+		pgrads[:, x] = n[:,0] / n[:,2]
+		qgrads[:, x] = n[:,1] / n[:,2]
+	# Return the normals and the gradients
 	return normals, pgrads, qgrads
 
 # Compute the depth map
@@ -107,16 +94,17 @@ def GetDepthMap( pgrads,  qgrads) :
 
 # Main application
 if __name__ == '__main__' :
+	# Read input files
 	print( 'Reading input data...' )
 	lights, images = ReadRTIFiles( sys.argv[1] )
+	# Compute normal map
 	print( 'Computing normal map...' )
 	normals, pgrads, qgrads = GetNormalMap( lights, images )
 	# Convert the normal map into an image
 	normalmap_image = cv2.cvtColor( normals.astype( np.float32 ), cv2.COLOR_BGR2RGB )
 	# Write the normal map
 	cv2.imwrite( 'normalmap.png',  normalmap_image  * 255.99 )
-#	cv2.imshow( 'normalmap.png',  normalmap_image )
-#	cv2.waitKey()
+	# Compute the depth map
 	print( 'Computing depth map...' )
 	z = GetDepthMap( pgrads, qgrads )
 	# Triangulate and export the mesh to a PLY file
