@@ -20,23 +20,21 @@ def GetNormalMap( lights, images ) :
 	pgrads = np.zeros( (height, width) )
 	qgrads = np.zeros( (height, width) )
 	# Compute the normal for each pixel
-	for x in range( width ) :
-		Ib = images[ :, :, x ]
-		n = np.dot( lights_inv, Ib[:,:] ).T
-		p = np.sqrt( (n ** 2).sum( axis = 1 ) )
+	for y in range( height ) :
+		I = images[:, y, :]
+		n = np.dot( lights_inv, I ).T
+		p = np.sqrt( ( n ** 2 ).sum( axis = 1 ) )
 		for i in range ( 3 ) :
-			n[:,i] = np.where( p > 0, n[:,i] / p, n[:,i] )
-		n[:,2] = np.where( n[:,2] == 0, 1, n[:,2] )
-		normals[:,x] = n
-		pgrads[:, x] = n[:,0] / n[:,2]
-		qgrads[:, x] = n[:,1] / n[:,2]
+			n[:, i] = np.where( p > 0, n[:, i] / p, n[:, i] )
+		n[:, 2] = np.where( n[:, 2] == 0, 1, n[:, 2] )
+		normals[y, :] = n
+		pgrads[y, :] = n[:, 0] / n[:, 2]
+		qgrads[y, :] = n[:, 1] / n[:, 2]
 	# Return the normals and the gradients
 	return normals, pgrads, qgrads
 
 # Compute the depth map
 def GetDepthMap( pgrads,  qgrads ) :
-	l = 1.0
-	mu = 1.0
 	height, width = pgrads.shape[:2]
 	P = cv2.dft( pgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
 	Q = cv2.dft( qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
@@ -51,7 +49,7 @@ def GetDepthMap( pgrads,  qgrads ) :
 				u = math.sin( y * 2.0 * math.pi / height )
 				v = math.sin( x * 2.0 * math.pi / width )
 				uv = u ** 2 + v ** 2
-				d = ( 1 + l ) * uv + mu * ( uv ** 2 )
+				d = 2 * uv + uv ** 2
 	#			if y==200 and x==200 : print(d)
 				Z[y, x, 0] = ( u*P[y, x, 1] + v*Q[y, x, 1]) / d
 				Z[y, x, 1] = (-u*P[y, x, 0] - v*Q[y, x, 0]) / d
