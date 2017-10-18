@@ -8,6 +8,7 @@ import os
 import sys
 import cv2
 import numpy as np
+import Mesh
 
 # Read the RTI files (images + light positions)
 def ReadRTIFiles( path ) :
@@ -73,8 +74,8 @@ def GetNormalMap( lights, images ) :
 	_, lights_inv = cv2.invert( lights, flags = cv2.DECOMP_SVD )
 	# Initialize the normals, pgrads, qgrads matrices
 	normals = np.zeros( (height, width, 3) )
-	Pgrads = np.zeros( (height, width) )
-	Qgrads = np.zeros( (height, width) )
+	pgrads = np.zeros( (height, width) )
+	qgrads = np.zeros( (height, width) )
 	# Compute the normal for each pixel
 	for x in range( width ) :
 #		Ib = images[ :, :, x ]
@@ -93,24 +94,51 @@ def GetNormalMap( lights, images ) :
 				legit *= images[i][y, x] >= 0
 			if legit :
 				normals[y, x] = n
-				Pgrads[y, x] = n[0] / n[2]
-				Qgrads[y, x] = n[1] / n[2]
+				pgrads[y, x] = n[0] / n[2]
+				qgrads[y, x] = n[1] / n[2]
 			else :
 				normals[y, x] = [0, 0, 1]
-				Pgrads[y, x] = 0
-				Qgrads[y, x] = 0
-	# Convert the normal map into an image
-	normalmap_image = cv2.cvtColor( normals.astype( np.float32 ), cv2.COLOR_BGR2RGB )
-	# Write the normal map
-	cv2.imwrite( 'normalmap.png',  normalmap_image  * 255.99 )
-	cv2.imshow( 'normalmap.png',  normalmap_image )
-	cv2.waitKey()
+				pgrads[y, x] = 0
+				qgrads[y, x] = 0
 	# Return the normals
-	return normals
+	return normals, pgrads, qgrads
+
+# Compute the depth map
+def GetDepthMap( pgrads,  qgrads) :
+	l = 1.0
+	mu = 1.0
+	rows = pgrads.shape[0]
+	cols = pgrads.shape[1]
+	P = cv2.dft( pgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
+	Q = cv2.dft( qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
+	Z = np.zeros( (rows, cols, 2) )
+	for i in range(rows) :
+		for j in range(cols) :
+			if i != 0 or j != 0 :
+				u = math.sin( i * 2.0 * math.pi / rows )
+				v = math.sin( j * 2.0 * math.pi / cols )
+				uv = u ** 2 + v ** 2
+				d = ( 1 + l ) * uv + mu * ( uv ** 2 )
+				Z[i, j, 0] = ( u*P[i, j, 1] + v*Q[i, j, 1]) / d
+				Z[i, j, 1] = (-u*P[i, j, 0] - v*Q[i, j, 0]) / d
+	Z[0, 0, 0] = 0.0
+	Z[0, 0, 1] = 0.0
+	Z = cv2.dft( Z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
+	return Z
 
 # Main application
 if __name__ == '__main__' :
 	print( 'Reading input data...' )
 	lights, images = ReadRTIFiles( sys.argv[1] )
 	print( 'Computing normal map...' )
-#	GetNormalMap( lights, images )
+	normals, pgrads, qgrads = GetNormalMap( lights, images )
+	# Convert the normal map into an image
+	normalmap_image = cv2.cvtColor( normals.astype( np.float32 ), cv2.COLOR_BGR2RGB )
+	# Write the normal map
+	cv2.imwrite( 'normalmap.png',  normalmap_image  * 255.99 )
+#	cv2.imshow( 'normalmap.png',  normalmap_image )
+#	cv2.waitKey()
+	print( 'Computing depth map...' )
+	z = GetDepthMap( pgrads, qgrads )
+	# Triangulate and export the mesh to a PLY file
+	Mesh.ExportMesh( images[0].shape[0], images[0].shape[1], z, 'mesh.ply' )
