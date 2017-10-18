@@ -24,12 +24,12 @@ def ReadRTIFiles( path ) :
 	# Convert the light position list to a numpy array
 	lights = np.array( lights, dtype=np.float )
 	# Find the image files
-	image_filenames = sorted( glob.glob( '{}/Image_*.png'.format( path ) ) )
+	filename = sorted( glob.glob( '{}/Image_*.png'.format( path ) ) )
 	# Read the image files
 	images = []
-	for filename in image_filenames :
+	for file in filename :
 		# Read the image
-		images.append( cv2.imread( filename, cv2.IMREAD_GRAYSCALE ) )
+		images.append( cv2.imread( file, cv2.IMREAD_GRAYSCALE ) )
 	# Convert the images list into a numpy array
 	images = np.array( images )
 	# Test if a mask image is present
@@ -54,10 +54,15 @@ def GetNormalMap( lights, images ) :
 	Qgrads = np.zeros( (height, width) )
 	# Compute the normal for each pixel
 	for x in range( width ) :
+#		Ib = images[ :, :, x ]
+#		n = np.dot( lights_inv, Ib[:] )
+#		p = np.sqrt( (n ** 2).sum( axis=1 ) )
+#		print( Ib.shape, n.shape, p.shape )
 		for y in range( height ) :
 			I = images[:, y, x]
 			n = np.dot( lights_inv, I )
 			p = math.sqrt( (n ** 2).sum() )
+#			if y == 0 : print( '---', I.shape, n.shape, p )
 			if p > 0 : n = n / p
 			if n[2] == 0 : n[2] = 1
 			legit = 1
