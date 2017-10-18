@@ -42,6 +42,10 @@ def GetDepthMap( pgrads,  qgrads ) :
 	P = cv2.dft( pgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
 	Q = cv2.dft( qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
 	Z = np.zeros( (rows, cols, 2) )
+	uu, vv = np.meshgrid( np.arange(rows)*2*np.pi/rows, np.arange(cols)*2*np.pi/cols )
+	uuvv = np.sin( uu ) ** 2 + np.sin( vv ) ** 2
+#	dd = uuvv * 2 + uuvv ** 2
+#	print(dd[200:200])
 	for i in range(rows) :
 		for j in range(cols) :
 			if i != 0 or j != 0 :
@@ -49,6 +53,7 @@ def GetDepthMap( pgrads,  qgrads ) :
 				v = math.sin( j * 2.0 * math.pi / cols )
 				uv = u ** 2 + v ** 2
 				d = ( 1 + l ) * uv + mu * ( uv ** 2 )
+	#			if i==200 and j==200 : print(d)
 				Z[i, j, 0] = ( u*P[i, j, 1] + v*Q[i, j, 1]) / d
 				Z[i, j, 1] = (-u*P[i, j, 0] - v*Q[i, j, 0]) / d
 	Z[0, 0, 0] = 0.0
