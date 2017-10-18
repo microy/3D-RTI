@@ -14,6 +14,8 @@ def ExportMesh( Z, filename ) :
 
 	# Generate the X-Y grid
 	X, Y = np.meshgrid( np.arange( width ), np.arange( height ) )
+	# Flip the image to match 3D space
+	Z = np.flip( -Z, 0 )
 	# Create the vertices
 	vertices = np.array( [ X.flatten(), Y.flatten(), Z.flatten() ] ).T
 	# Array of vertex indices
