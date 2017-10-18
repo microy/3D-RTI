@@ -8,6 +8,7 @@ import os
 import sys
 import cv2
 import numpy as np
+import Mask
 import Mesh
 
 # Read the RTI files (images + light positions)
@@ -40,31 +41,9 @@ def ReadRTIFiles( path ) :
 		mask = cv2.imread( filename, cv2.IMREAD_GRAYSCALE )
 		# Apply the mask to every image
 		images[ :, mask == 0 ] = 0
-	else : CreateMask( images )
+	else : Mask.CreateMask( images )
 	# The return the light positions and the images
 	return lights, images
-
-def CreateMask( images ) :
-	temp = np.mean( images, axis=0 ).astype( np.uint8 )
-	temp = cv2.resize( temp, None, fx=0.3, fy=0.3 )
-#	temp[ temp > 50 ] = 255
-# noise removal
-	ret, thresh = cv2.threshold(temp,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-	kernel = np.ones((3,3),np.uint8)
-	opening = cv2.morphologyEx(temp,cv2.MORPH_CLOSE,kernel)
-	sure_bg = cv2.dilate(opening,kernel,iterations=3)
-	# Otsu's thresholding after Gaussian filtering
-	# blur = cv2.GaussianBlur(temp,(5,5),0)
-	# ret3,th3 = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-	# im2, contours, hierarchy = cv2.findContours(th3, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-	# cv2.drawContours(im2, contours, -1, (0,255,0), 3)
-	# cv2.imshow( 'temp', cv2.resize( im2.astype( np.uint8 ), None, fx=0.3, fy=0.3 ) )
-	# cv2.waitKey()
-	ret, thresh = cv2.threshold(sure_bg,0,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-#	thresh = cv2.morphologyEx(thresh,cv2.MORPH_CLOSE,kernel)
-	thresh = cv2.dilate(thresh,kernel,iterations=10)
-	cv2.imshow( 'temp', thresh )
-	cv2.waitKey()
 
 # Estimate the normals
 def GetNormalMap( lights, images ) :
