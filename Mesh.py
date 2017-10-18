@@ -6,9 +6,12 @@ import numpy as np
 
 # Create a mesh from a regular grid, compute the normals, and export it to a PLY file
 def ExportMesh( Z, filename ) :
+
 	# Get grid size
 	height, width = Z.shape[:2]
+
 # Triangulate the grid
+
 	# Generate the X-Y grid
 	X, Y = np.meshgrid( np.arange( width ), np.arange( height ) )
 	# Create the vertices
@@ -43,7 +46,9 @@ def ExportMesh( Z, filename ) :
 	left_diagonal = np.dstack( (left_diagonal, left_diagonal) ).flatten()
 	# Merge left and right diagonal faces
 	faces[ left_diagonal ] = left_faces[ left_diagonal ]
+
 # Compute the vertex normals
+
 	# Create an indexed view of the triangles
 	tris = vertices[ faces ]
 	# Calculate the normal for all the triangles
@@ -59,7 +64,9 @@ def ExportMesh( Z, filename ) :
 		vertex_normals[:, i] += np.bincount( faces[:, 2], face_normals[:, i], minlength=len( vertices ) )
 	# Normalise the vertex normals
 	vertex_normals /= np.sqrt( ( vertex_normals ** 2 ).sum( axis=1 ) ).reshape( -1, 1 )
+
 # Write a PLY file
+
 	# Define the PLY file header
 	header = '''ply
 format binary_little_endian 1.0
