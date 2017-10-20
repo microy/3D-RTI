@@ -32,6 +32,7 @@ if __name__ == '__main__' :
 	cv2.waitKey()
 	# Write the normal map
 	cv2.imwrite( 'normalmap.png',  normalmap_image  * 255.99 )
+	cv2.imwrite( 'albedo.png',  albedo  * 255.99 )
 
 	# Compute the depth map
 #	print( 'Computing depth map...' )
