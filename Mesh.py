@@ -86,14 +86,14 @@ def ExportVrml( filename, z, normals ) :
 	vrml += '    normal Normal {\n'
 	vrml += '      vector [\n'
 	for i in range( len(n) ) :
-		vrml += '        {} {} {}{}\n'.format( *n[i], ',' if i < len(n)-1 else '' )
+		vrml += '        {} {} {}{}\n'.format( *(n[i], ',' if i < len(n)-1 else '') )
 	vrml += '      ]\n'
 	vrml += '    }\n'
 	# Texture coordinates
 	vrml += '    texCoord TextureCoordinate {\n'
 	vrml += '      point [\n'
 	for i in range( len(t) ) :
-		vrml += '        {} {}{}\n'.format( *t[i], ',' if i < len(t)-1 else '' )
+		vrml += '        {} {}{}\n'.format( *(t[i], ',' if i < len(t)-1 else '') )
 	vrml += '      ]\n'
 	vrml += '    }\n'
 	# End elevation grid

@@ -22,7 +22,6 @@ print( 'Computing normal map...' )
 normals, albedo = Stereo1.GetNormalMap( lights, images )
 # Stereo 2
 #normals2, albedo2 = Stereo2.GetNormalMap( lights, images )
-
 # Convert the normal map into an image
 normalmap_image = cv2.cvtColor( normals.astype( np.float32 ), cv2.COLOR_BGR2RGB )
 # Dipslay the normal map and the albedo
