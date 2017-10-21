@@ -5,7 +5,7 @@ import struct as st
 import numpy as np
 
 # Create a mesh from a regular grid, compute the normals, and export it to a PLY file
-def ExportPly( filename, z ) :
+def ExportPly( filename, z, normals ) :
 
 	# Get grid size
 	height, width = z.shape[:2]
@@ -49,24 +49,6 @@ def ExportPly( filename, z ) :
 	# Merge left and right diagonal faces
 	faces[ left_diagonal ] = left_faces[ left_diagonal ]
 
-# Compute the vertex normals
-
-	# Create an indexed view of the triangles
-	tris = vertices[ faces ]
-	# Calculate the normal for all the triangles
-	face_normals = np.cross( tris[::,1] - tris[::,0]  , tris[::,2] - tris[::,0] )
-	# Normalise the face normals
-	face_normals /= np.sqrt( ( face_normals ** 2 ).sum( axis=1 ) ).reshape( -1, 1 )
-	# Initialise the vertex normals
-	vertex_normals = np.zeros( vertices.shape )
-	# Add the face normals to the vertex normals
-	for i in range( 3 ) :
-		vertex_normals[:, i] += np.bincount( faces[:, 0], face_normals[:, i], minlength=len( vertices ) )
-		vertex_normals[:, i] += np.bincount( faces[:, 1], face_normals[:, i], minlength=len( vertices ) )
-		vertex_normals[:, i] += np.bincount( faces[:, 2], face_normals[:, i], minlength=len( vertices ) )
-	# Normalise the vertex normals
-	vertex_normals /= np.sqrt( ( vertex_normals ** 2 ).sum( axis=1 ) ).reshape( -1, 1 )
-
 # Write a PLY file
 
 	# Define the PLY file header
@@ -83,7 +65,7 @@ element face {face_number}
 property list int int vertex_indices
 end_header\n'''.format( vertex_number = len( vertices ), face_number = len( faces ) )
 	# Merge vertices coordinates and normals
-	full_vertices = np.hstack( ( vertices, vertex_normals ) )
+	full_vertices = np.hstack( ( vertices, normals.reshape( (width * height, 3) ) ) )
 	# Add the number of indices to every face
 	faces = np.insert( faces, 0, 3, axis = 1 )
 	# Open the target PLY file

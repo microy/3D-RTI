@@ -40,5 +40,5 @@ z = Stereo1.GetDepthMap( normals )
 
 # Triangulate the depth map, and export the mesh to a PLY file
 print( 'Exporting mesh...' )
-#Mesh.ExportPly( 'mesh.wrl', z, normals )
-Mesh.ExportVrml( 'mesh.wrl', z, normals )
+Mesh.ExportPly( 'mesh.ply', z, normals )
+#Mesh.ExportVrml( 'mesh.wrl', z, normals )
