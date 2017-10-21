@@ -18,39 +18,28 @@ def GetNormalMap( lights, images ) :
 	A_inv = np.linalg.inv( A )
 
 	# V1
-	for i in range( nrows ) : # y
-		for j in range( ncols ) : # x
-			I = images[:, i, j]
-			if i == 1000 and j == 1000: print( I.shape )
-			I = I.transpose()
-			if i == 1000 and j == 1000: print( I.shape )
-			b = lights_t.dot( I )
-			g = A_inv.dot( b )
-			R = np.linalg.norm( g )
-			N = g / R
-			if np.linalg.norm( I ) < 1.0E-06 :
-				N = 0
-				R = 0
-			normals[ i, j ] =  N
-			albedo[ i, j ]= R
+	# for i in range( nrows ) : # y
+	# 	for j in range( ncols ) : # x
+	# 		I = images[ :, i, j ]
+	# 		b = lights_t.dot( I )
+	# 		g = A_inv.dot( b )
+	# 		R = np.sqrt( ( g ** 2 ).sum() )
+	# 		N = g / R
+	# 		if np.sqrt( ( I ** 2 ).sum() ) < 1.0E-06 :
+	# 			N = 0
+	# 			R = 0
+	# 		normals[ i, j ] =  N
+	# 		albedo[ i, j ] = R
 
 	# V2
-	# for i in range( nrows ) : # y
-	# 	I = images[:, i, :]
-	# 	I = I.transpose()
-	# 	b = lights_t.dot( I )
-	# 	print( I.shape )
-	# 	g = np.linalg.inv( A ).dot( b )
-	# 	R = np.linalg.norm( g )
-	# 	N = g / R
-	# 	if np.linalg.norm( I ) < 1.0E-06 :
-	# 		N = 0
-	# 		R = 0
-	#
-	# 	normals[ i, : ] =  N
-	# 	albedo[ i, : ]= R
-
-
+	for i in range( nrows ) : # y
+		I = images[ :, i, : ]
+		b = lights_t.dot( I )
+		g = A_inv.dot( b ).T
+		R = np.sqrt( ( g ** 2 ).sum( axis = 1 ) )
+		N = g / R.reshape( (-1, 1) )
+		normals[ i, : ] =  N
+		albedo[ i, : ] = R
 
 	maxval = albedo.max()
 	if maxval > 0 : albedo /= maxval
