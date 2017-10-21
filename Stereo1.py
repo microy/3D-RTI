@@ -15,10 +15,9 @@ def GetNormalMap( lights, images ) :
 	height, width = images[0].shape[:2]
 	# Compute the pseudo-inverse of the light position matrix using SVD
 	_, lights_inv = cv2.invert( lights, flags = cv2.DECOMP_SVD )
-	# Initialize the normals, pgrads, qgrads matrices
+	# Initialize the normals
 	normals = np.zeros( (height, width, 3) )
-	pgrads = np.zeros( (height, width) )
-	qgrads = np.zeros( (height, width) )
+	albedo = np.zeros( (height, width) )
 	# Compute the normal for each pixel
 	for y in range( height ) :
 		I = images[:, y, :]
@@ -28,16 +27,28 @@ def GetNormalMap( lights, images ) :
 			n[:, i] = np.where( p > 0, n[:, i] / p, n[:, i] )
 		n[:, 2] = np.where( n[:, 2] == 0, 1, n[:, 2] )
 		normals[y, :] = n
-		pgrads[y, :] = n[:, 0] / n[:, 2]
-		qgrads[y, :] = n[:, 1] / n[:, 2]
-	# Return the normals and the gradients
-	return normals, pgrads, qgrads
+		albedo[y, :] = p
+	# Normalize the albedo
+	albedo /= albedo.max()
+	# Return the normals
+	return normals, albedo
 
 # Compute the depth map
-def GetDepthMap( pgrads,  qgrads ) :
-	height, width = pgrads.shape[:2]
+def GetDepthMap( normals ) :
+	# Get the image size
+	height, width = normals.shape[:2]
+	# Initialize the pgrads, qgrads matrices
+	pgrads = np.zeros( (height, width) )
+	qgrads = np.zeros( (height, width) )
+	# Compute the gradients
+	for y in range( height ) :
+		n = normals[y, :]
+		pgrads[y, :] = n[:, 0] / n[:, 2]
+		qgrads[y, :] = n[:, 1] / n[:, 2]
+	# Compute the Fourier Transformation of the gradients
 	P = cv2.dft( pgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
 	Q = cv2.dft( qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
+	# Initilize the depth
 	Z = np.zeros( (height, width, 2) )
 	uu, vv = np.meshgrid( np.arange(height)*2*np.pi/height, np.arange(width)*2*np.pi/width )
 	uuvv = np.sin( uu ) ** 2 + np.sin( vv ) ** 2
