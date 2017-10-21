@@ -23,9 +23,9 @@ def GetNormalMap( lights, images ) :
 		I = images[:, y, :]
 		n = np.dot( lights_inv, I ).T
 		p = np.sqrt( ( n ** 2 ).sum( axis = 1 ) )
-		for i in range ( 3 ) :
-			n[:, i] = np.where( p > 0, n[:, i] / p, n[:, i] )
-		n[:, 2] = np.where( n[:, 2] == 0, 1, n[:, 2] )
+		condition = p > 0
+		n[condition] /= p[condition].reshape( (-1, 1) )
+		n[~condition] = [0, 0, 1]
 		normals[y, :] = n
 		albedo[y, :] = p
 	# Normalize the albedo
