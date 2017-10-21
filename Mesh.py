@@ -6,51 +6,23 @@ import numpy as np
 
 # Create a mesh from a regular grid, compute the normals, and export it to a PLY file
 def ExportPly( filename, z, normals ) :
-
 	# Get grid size
 	height, width = z.shape[:2]
-
-# Triangulate the grid
-
 	# Generate the X-Y grid
 	x, y = np.meshgrid( np.arange( width ), np.arange( height ) )
-	# Flip the image to match 3D space
+	# Flip the depth image to match 3D space
 	z = np.flip( -z, 0 )
 	# Create the vertices
 	vertices = np.array( [ x.flatten(), y.flatten(), z.flatten() ] ).T
 	# Array of vertex indices
 	vindex = np.arange( height * width ).reshape( height, width )
-	# Initialize the right diagonal face array
-	faces = np.empty( ( 2 * (height - 1) * (width - 1), 3 ), dtype=np.int )
-	# Create lower triangle faces
-	faces[ ::2, 0 ] = vindex[   : height - 1,   : width - 1 ].flatten()
-	faces[ ::2, 1 ] = vindex[   : height - 1, 1 : width     ].flatten()
-	faces[ ::2, 2 ] = vindex[ 1 : height    , 1 : width     ].flatten()
-	# Create upper triangle faces
-	faces[ 1::2, 0 ] = vindex[   : height - 1,   : width - 1 ].flatten()
-	faces[ 1::2, 1 ] = vindex[ 1 : height    , 1 : width     ].flatten()
-	faces[ 1::2, 2 ] = vindex[ 1 : height    ,   : width - 1 ].flatten()
-	# Initialize the left diagonal face array
-	left_faces = np.empty( ( 2 * (height - 1) * (width - 1), 3 ), dtype=np.int )
-	# Create lower triangle faces
-	left_faces[ ::2, 0 ] = vindex[   : height - 1,   : width - 1 ].flatten()
-	left_faces[ ::2, 1 ] = vindex[   : height - 1, 1 : width     ].flatten()
-	left_faces[ ::2, 2 ] = vindex[ 1 : height    ,   : width - 1 ].flatten()
-	# Create upper triangle faces
-	left_faces[ 1::2, 0 ] = vindex[   : height - 1, 1 : width     ].flatten()
-	left_faces[ 1::2, 1 ] = vindex[ 1 : height    , 1 : width     ].flatten()
-	left_faces[ 1::2, 2 ] = vindex[ 1 : height    ,   : width - 1 ].flatten()
-	# Find the diagonal that minimizes the Z difference
-	left_diagonal = np.absolute( z[1:,1:] - z[:-1,:-1] ) > np.absolute( z[1:,:-1] - z[:-1,1:] )
-	# Flatten the array
-	left_diagonal = left_diagonal.flatten()
-	# Double the values (1 square -> 2 triangles)
-	left_diagonal = np.dstack( (left_diagonal, left_diagonal) ).flatten()
-	# Merge left and right diagonal faces
-	faces[ left_diagonal ] = left_faces[ left_diagonal ]
-
-# Write a PLY file
-
+	# Initialize the face array
+	faces = np.empty( ( (height - 1) * (width - 1), 4 ), dtype=np.int )
+	# Create rectangular faces
+	faces[ :, 0 ] = vindex[   : height - 1,   : width - 1 ].flatten()
+	faces[ :, 1 ] = vindex[   : height - 1, 1 : width     ].flatten()
+	faces[ :, 2 ] = vindex[ 1 : height , 1 : width ].flatten()
+	faces[ :, 3 ] = vindex[ 1 : height , : width - 1 ].flatten()
 	# Define the PLY file header
 	header = '''ply
 format binary_little_endian 1.0
@@ -67,7 +39,7 @@ end_header\n'''.format( vertex_number = len( vertices ), face_number = len( face
 	# Merge vertices coordinates and normals
 	full_vertices = np.hstack( ( vertices, normals.reshape( (width * height, 3) ) ) )
 	# Add the number of indices to every face
-	faces = np.insert( faces, 0, 3, axis = 1 )
+	faces = np.insert( faces, 0, 4, axis = 1 )
 	# Open the target PLY file
 	with open( filename, 'wb' ) as ply_file :
 		# Write the header
@@ -75,7 +47,7 @@ end_header\n'''.format( vertex_number = len( vertices ), face_number = len( face
 		# Write the vertex data
 		ply_file.write( st.pack( '6f' * len( vertices ), *full_vertices.flatten() ) )
 		# Write the face data
-		ply_file.write( st.pack( '4i' * len( faces ), *faces.flatten() ) )
+		ply_file.write( st.pack( '5i' * len( faces ), *faces.flatten() ) )
 
 # Write a VRML file
 def ExportVrml( filename, z, normals ) :
