@@ -5,19 +5,19 @@ import struct as st
 import numpy as np
 
 # Create a mesh from a regular grid, compute the normals, and export it to a PLY file
-def ExportMesh( Z, filename ) :
+def ExportPly( filename, z ) :
 
 	# Get grid size
-	height, width = Z.shape[:2]
+	height, width = z.shape[:2]
 
 # Triangulate the grid
 
 	# Generate the X-Y grid
-	X, Y = np.meshgrid( np.arange( width ), np.arange( height ) )
+	x, y = np.meshgrid( np.arange( width ), np.arange( height ) )
 	# Flip the image to match 3D space
-	Z = np.flip( -Z, 0 )
+	z = np.flip( -z, 0 )
 	# Create the vertices
-	vertices = np.array( [ X.flatten(), Y.flatten(), Z.flatten() ] ).T
+	vertices = np.array( [ x.flatten(), y.flatten(), z.flatten() ] ).T
 	# Array of vertex indices
 	vindex = np.arange( height * width ).reshape( height, width )
 	# Initialize the right diagonal face array
@@ -41,7 +41,7 @@ def ExportMesh( Z, filename ) :
 	left_faces[ 1::2, 1 ] = vindex[ 1 : height    , 1 : width     ].flatten()
 	left_faces[ 1::2, 2 ] = vindex[ 1 : height    ,   : width - 1 ].flatten()
 	# Find the diagonal that minimizes the Z difference
-	left_diagonal = np.absolute( Z[1:,1:] - Z[:-1,:-1] ) > np.absolute( Z[1:,:-1] - Z[:-1,1:] )
+	left_diagonal = np.absolute( z[1:,1:] - z[:-1,:-1] ) > np.absolute( z[1:,:-1] - z[:-1,1:] )
 	# Flatten the array
 	left_diagonal = left_diagonal.flatten()
 	# Double the values (1 square -> 2 triangles)
@@ -67,95 +67,84 @@ def ExportMesh( Z, filename ) :
 	# Normalise the vertex normals
 	vertex_normals /= np.sqrt( ( vertex_normals ** 2 ).sum( axis=1 ) ).reshape( -1, 1 )
 
-# Create the texture coordinates
-
-	# Generate the X-Y grid
-	u, v = np.meshgrid( np.linspace( 0, 1, width ), np.linspace( 0, 1, height ) )
-	# Create the vertices
-	textures = np.array( [ u.flatten(), v.flatten() ] ).T
-
 # Write a PLY file
 
-# 	# Define the PLY file header
-# 	header = '''ply
-# format binary_little_endian 1.0
-# element vertex {vertex_number}
-# property float x
-# property float y
-# property float z
-# property float nx
-# property float ny
-# property float nz
-# element face {face_number}
-# property list int int vertex_indices
-# end_header\n'''.format( vertex_number = len( vertices ), face_number = len( faces ) )
-# 	# Merge vertices coordinates and normals
-# 	full_vertices = np.hstack( ( vertices, vertex_normals ) )
-# 	# Add the number of indices to every face
-# 	faces = np.insert( faces, 0, 3, axis = 1 )
-# 	# Open the target PLY file
-# 	with open( filename, 'wb' ) as ply_file :
-# 		# Write the header
-# 		ply_file.write( header.encode( 'UTF-8' ) )
-# 		# Write the vertex data
-# 		ply_file.write( st.pack( '6f' * len( vertices ), *full_vertices.flatten() ) )
-# 		# Write the face data
-# 		ply_file.write( st.pack( '4i' * len( faces ), *faces.flatten() ) )
+	# Define the PLY file header
+	header = '''ply
+format binary_little_endian 1.0
+element vertex {vertex_number}
+property float x
+property float y
+property float z
+property float nx
+property float ny
+property float nz
+element face {face_number}
+property list int int vertex_indices
+end_header\n'''.format( vertex_number = len( vertices ), face_number = len( faces ) )
+	# Merge vertices coordinates and normals
+	full_vertices = np.hstack( ( vertices, vertex_normals ) )
+	# Add the number of indices to every face
+	faces = np.insert( faces, 0, 3, axis = 1 )
+	# Open the target PLY file
+	with open( filename, 'wb' ) as ply_file :
+		# Write the header
+		ply_file.write( header.encode( 'UTF-8' ) )
+		# Write the vertex data
+		ply_file.write( st.pack( '6f' * len( vertices ), *full_vertices.flatten() ) )
+		# Write the face data
+		ply_file.write( st.pack( '4i' * len( faces ), *faces.flatten() ) )
 
 # Write a VRML file
-
+def ExportVrml( filename, z, normals ) :
+	# Get grid size
+	height, width = z.shape[:2]
+	# Flip the image to match 3D space and flatten the array
+	z = np.flip( -z, 0 ).flatten()
+	# Reshape the normal array
+	n = normals.reshape( (width * height, 3) )
+	# Generate the U-V grid for the texture coordinates
+	u, v = np.meshgrid( np.linspace( 0, 1, width ), np.linspace( 0, 1, height ) )
+	t = np.array( [ u.flatten(), v.flatten() ] ).T
 	# File Header
 	vrml = '#VRML V2.0 utf8\n'
-	# Comments
-	vrml += '# Vertices :  {}\n'.format(len(vertices))
-	vrml += '# Faces :     {}\n'.format(len(faces))
-	vrml += '# Normals :   {}\n'.format(len(vertex_normals))
-	vrml += '# Texture :   albedo.png\n'
-	vrml += '\n'
 	# Begin description
-	vrml += 'Transform {\n'
-	vrml += '  scale 1 1 1\n'
-	vrml += '  translation 0 0 0\n'
-	vrml += '  children [\n'
-	vrml += '    Shape {\n'
+	vrml += 'Shape {\n'
 	# Texture filename
-	vrml += '      appearance Appearance {\n'
-	vrml += '        texture ImageTexture {\n'
-	vrml += '          url "albedo.png"\n'
-	vrml += '        }\n'
-	vrml += '      }\n'
-	# Vertex coordinates
-	vrml += '      geometry IndexedFaceSet {\n'
-	vrml += '        coord Coordinate {\n'
-	vrml += '          point [\n'
-	for i in range( len(vertices) ) :
-		vrml += '                {} {} {}{}\n'.format( *vertices[i], ',' if i < len(vertices)-1 else '' )
-	vrml += '          ]\n'
-	vrml += '        }\n'
-	# Face indices
-	vrml += '        coordIndex [\n'
-	for i in range( len(faces) ) :
-		vrml += '            {}, {}, {}, -1{}\n'.format( *faces[i], ',' if i < len(faces)-1 else '' )
-	vrml += '        ]\n'
-	# Vertex normals
-	vrml += '        normalPerVertex TRUE\n'
-	vrml += '        normal Normal {\n'
-	vrml += '          vector [\n'
-	for i in range( len(vertex_normals) ) :
-		vrml += '            {} {} {}{}\n'.format( *vertex_normals[i], ',' if i < len(vertex_normals)-1 else '' )
-	vrml += '          ]\n'
-	vrml += '        }\n'
-	# Texture coordinates
-	vrml += '        texCoord TextureCoordinate {\n'
-	vrml += '          point [\n'
-	for i in range( len(textures) ) :
-		vrml += '            {} {}{}\n'.format( *textures[i], ',' if i < len(textures)-1 else '' )
-	vrml += '          ]\n'
-	vrml += '        }\n'
-	# End description
-	vrml += '      }\n'
+	vrml += '  appearance Appearance {\n'
+	vrml += '    texture ImageTexture {\n'
+	vrml += '      url "albedo.png"\n'
 	vrml += '    }\n'
-	vrml += '  ]\n'
+	vrml += '  }\n'
+	# Elevation grid
+	vrml += '  geometry ElevationGrid {\n'
+	vrml += '    xDimension {}\n'.format( width )
+	vrml += '    zDimension {}\n'.format( height )
+	vrml += '    xSpacing 1\n'
+	vrml += '    zSpacing 1\n'
+	# Vertex coordinates
+	vrml += '    height [\n'
+	for i in range( len(z) ) :
+		vrml += '           {}{}\n'.format( z[i], ',' if i < len(z)-1 else '' )
+	vrml += '    ]\n'
+	# # Vertex normals
+	vrml += '    normalPerVertex TRUE\n'
+	vrml += '    normal Normal {\n'
+	vrml += '      vector [\n'
+	for i in range( len(n) ) :
+		vrml += '        {} {} {}{}\n'.format( *n[i], ',' if i < len(n)-1 else '' )
+	vrml += '      ]\n'
+	vrml += '    }\n'
+	# Texture coordinates
+	vrml += '    texCoord TextureCoordinate {\n'
+	vrml += '      point [\n'
+	for i in range( len(t) ) :
+		vrml += '        {} {}{}\n'.format( *t[i], ',' if i < len(t)-1 else '' )
+	vrml += '      ]\n'
+	vrml += '    }\n'
+	# End elevation grid
+	vrml += '  }\n'
+	# End description
 	vrml += '}\n'
 	# Open the target file
 	with open( filename, 'wb' ) as vrml_file :
