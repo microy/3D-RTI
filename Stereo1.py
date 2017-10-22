@@ -14,19 +14,30 @@ def GetNormalMap( lights, images ) :
 	height, width = images[0].shape[ :2 ]
 	# Compute the pseudo-inverse of the light position matrix using SVD
 	_, lights_inv = cv2.invert( lights, flags = cv2.DECOMP_SVD )
+	# v1
 	# Initialize the normals
-	normals = np.zeros( ( height, width, 3 ) )
-	albedo = np.zeros( ( height, width ) )
+	# normals = np.zeros( ( height, width, 3 ) )
+	# albedo = np.zeros( ( height, width ) )
 	# Compute the normal for each pixel
-	for y in range( height ) :
-		I = images[:, y, :]
-		n = np.dot( lights_inv, I ).T
-		p = np.sqrt( ( n ** 2 ).sum( axis = 1 ) )
-		condition = p > 0
-		n[condition] /= p[condition].reshape( (-1, 1) )
-		n[~condition] = [ 0, 0, 1 ]
-		normals[y, :] = n
-		albedo[y, :] = p
+	# for y in range( height ) :
+	# 	I = images[:, y, :]
+	# 	n = np.dot( lights_inv, I ).T
+	# 	p = np.sqrt( ( n ** 2 ).sum( axis = 1 ) )
+	# 	condition = p > 0
+	# 	n[condition] /= p[condition].reshape( (-1, 1) )
+	# 	n[~condition] = [ 0, 0, 1 ]
+	# 	normals[y, :] = n
+	# 	albedo[y, :] = p
+	# v2
+	# Compute the normals
+	normals = np.tensordot( lights_inv, images, 1 ).T
+	normals = np.swapaxes( normals, 0, 1 )
+	# Compute the albedo
+	albedo = np.sqrt( ( normals ** 2 ).sum( axis = 2 ) )
+	# Normalize the normals
+	valid = albedo > 0
+	normals[ valid ] /= albedo[ valid, np.newaxis ]
+	normals[ ~valid ] = [ 0, 0, 1 ]
 	# Normalize the albedo
 	albedo /= albedo.max()
 	# Return the normals
