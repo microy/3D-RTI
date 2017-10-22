@@ -49,33 +49,25 @@ def GetDepthMap( normals ) :
 	P = cv2.dft( pgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
 	Q = cv2.dft( qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
 	# Initilize the depth
-	Z = np.zeros( (height, width, 2) )
-#	z = np.zeros( (height, width, 2) )
+	z = np.zeros( (height, width, 2) )
 	# v1
-# 	for y in range(height) :
-# 		for x in range(width) :
-# 			if y == 0 and x == 0 : continue
-# 			u = math.sin( y * 2.0 * math.pi / height )
-# 			v = math.sin( x * 2.0 * math.pi / width )
-# 			uv = u ** 2 + v ** 2
-# 			d = 2 * uv + uv ** 2
-# 			Z[y, x, 0] = ( u*P[y, x, 1] + v*Q[y, x, 1]) / d
-# 			Z[y, x, 1] = (-u*P[y, x, 0] - v*Q[y, x, 0]) / d
+	# for y in range(height) :
+	# 	for x in range(width) :
+	# 		if y == 0 and x == 0 : continue
+	# 		u = math.sin( y * 2.0 * math.pi / height )
+	# 		v = math.sin( x * 2.0 * math.pi / width )
+	# 		uv = u ** 2 + v ** 2
+	# 		d = 2 * uv + uv ** 2
+	# 		Z[y, x, 0] = ( u*P[y, x, 1] + v*Q[y, x, 1]) / d
+	# 		Z[y, x, 1] = (-u*P[y, x, 0] - v*Q[y, x, 0]) / d
 	# v2
-	u = np.sin( np.linspace( 0, 2 * np.pi, height, endpoint = False ) )
-	v = np.sin( np.linspace( 0, 2 * np.pi, width, endpoint = False ) )
-	uu, vv = np.meshgrid( np.linspace( 0, 2*np.pi, width, endpoint = False ), np.linspace( 0, 2*np.pi, height, endpoint = False ) )
-	uv = np.sin( uu ) ** 2 + np.sin( vv ) ** 2
+	u, v = np.meshgrid( np.linspace( 0, 2*np.pi, height, endpoint = False ), np.linspace( 0, 2*np.pi, width, endpoint = False ) )
+	u = np.sin( u ).transpose()
+	v = np.sin( v ).transpose()
+	uv = np.sin( u ) ** 2 + np.sin( v ) ** 2
 	d = 2 * uv + uv ** 2
-	for y in range( height ) :
-		Z[y, :, 0] = ( u[y]*P[y, :, 1] + v*Q[y, :, 1]) / d[y]
-		Z[y, :, 1] = (-u[y]*P[y, :, 0] - v*Q[y, :, 0]) / d[y]
-	Z[0, 0, 0] = 0.0
-	Z[0, 0, 1] = 0.0
-	# z[:, :, 0] = ( uu*P[:, :, 1] + vv*Q[:, :, 1]) / d
-	# z[:, :, 1] = (-uu*P[:, :, 0] - vv*Q[:, :, 0]) / d
-	# z[0, 0, 0] = 0.0
-	# z[0, 0, 1] = 0.0
-	# print( Z.shape, z.shape, np.allclose( Z, z ) )
-	Z = cv2.dft( Z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
-	return Z
+	z[:, :, 0] = (  u*P[:, :, 1] + v*Q[:, :, 1] ) / d
+	z[:, :, 1] = ( -u*P[:, :, 0] - v*Q[:, :, 0] ) / d
+	z[0, 0] = 0.0
+	z = cv2.dft( z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
+	return z
