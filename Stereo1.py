@@ -36,19 +36,14 @@ def GetNormalMap( lights, images ) :
 def GetDepthMap( normals ) :
 	# Get the image size
 	height, width = normals.shape[ :2 ]
-	# Initialize the pgrads, qgrads matrices
-	pgrads = np.zeros( (height, width) )
-	qgrads = np.zeros( (height, width) )
 	# Compute the gradients
-	for y in range( height ) :
-		n = normals[ y, : ]
-		pgrads[ y, : ] = n[ :, 0 ] / n[ :, 2 ]
-		qgrads[ y, : ] = n[ :, 1 ] / n[ :, 2 ]
+	pgrads = normals[ :, :, 0 ] / normals[ :, :, 2 ]
+	qgrads = normals[ :, :, 1 ] / normals[ :, :, 2 ]
 	# Compute the Fourier Transformation of the gradients
 	p = cv2.dft( pgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
 	q = cv2.dft( qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
-	# Initilize the depth
-	z = np.zeros( (height, width, 2) )
+	# Initialize the depth
+	z = np.zeros( ( height, width, 2 ) )
 	# v1
 	# for y in range(height) :
 	# 	for x in range(width) :
@@ -61,10 +56,8 @@ def GetDepthMap( normals ) :
 	# 		Z[y, x, 1] = (-u*P[y, x, 0] - v*Q[y, x, 0]) / d
 	# v2
 	u = np.linspace( 0, 2 * np.pi, height, endpoint = False )
-	v = np.linspace( 0, 2 * np.pi, width, endpoint = False )
-	u, v = np.meshgrid( u, v )
-	u = np.sin( u ).transpose()
-	v = np.sin( v ).transpose()
+	v = np.linspace( 0, 2 * np.pi, width,  endpoint = False )
+	u, v = np.meshgrid( np.sin( u ), np.sin( v ), indexing = 'ij' )
 	uv = u ** 2 + v ** 2
 	d = 2 * uv + uv ** 2
 	# Fix division by zero
@@ -74,5 +67,7 @@ def GetDepthMap( normals ) :
 	z[ :, :, 1 ] = ( -u * p[ :, :, 0 ] - v * q[ :, :, 0 ] ) / d
 	# Fix
 	z[ 0, 0 ] = 0
+	# Inverse Fourier transformation of the depth map
 	z = cv2.dft( z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
+	# Return the depth map
 	return z
