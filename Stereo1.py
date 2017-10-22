@@ -50,21 +50,32 @@ def GetDepthMap( normals ) :
 	Q = cv2.dft( qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
 	# Initilize the depth
 	Z = np.zeros( (height, width, 2) )
-	uu, vv = np.meshgrid( np.arange(height)*2*np.pi/height, np.arange(width)*2*np.pi/width )
-	uuvv = np.sin( uu ) ** 2 + np.sin( vv ) ** 2
-#	dd = uuvv * 2 + uuvv ** 2
-#	print(dd[200:200])
-	for y in range(height) :
-		for x in range(width) :
-			if y != 0 or x != 0 :
-				u = math.sin( y * 2.0 * math.pi / height )
-				v = math.sin( x * 2.0 * math.pi / width )
-				uv = u ** 2 + v ** 2
-				d = 2 * uv + uv ** 2
-	#			if y==200 and x==200 : print(d)
-				Z[y, x, 0] = ( u*P[y, x, 1] + v*Q[y, x, 1]) / d
-				Z[y, x, 1] = (-u*P[y, x, 0] - v*Q[y, x, 0]) / d
+#	z = np.zeros( (height, width, 2) )
+	# v1
+# 	for y in range(height) :
+# 		for x in range(width) :
+# 			if y == 0 and x == 0 : continue
+# 			u = math.sin( y * 2.0 * math.pi / height )
+# 			v = math.sin( x * 2.0 * math.pi / width )
+# 			uv = u ** 2 + v ** 2
+# 			d = 2 * uv + uv ** 2
+# 			Z[y, x, 0] = ( u*P[y, x, 1] + v*Q[y, x, 1]) / d
+# 			Z[y, x, 1] = (-u*P[y, x, 0] - v*Q[y, x, 0]) / d
+	# v2
+	u = np.sin( np.linspace( 0, 2 * np.pi, height, endpoint = False ) )
+	v = np.sin( np.linspace( 0, 2 * np.pi, width, endpoint = False ) )
+	uu, vv = np.meshgrid( np.linspace( 0, 2*np.pi, width, endpoint = False ), np.linspace( 0, 2*np.pi, height, endpoint = False ) )
+	uv = np.sin( uu ) ** 2 + np.sin( vv ) ** 2
+	d = 2 * uv + uv ** 2
+	for y in range( height ) :
+		Z[y, :, 0] = ( u[y]*P[y, :, 1] + v*Q[y, :, 1]) / d[y]
+		Z[y, :, 1] = (-u[y]*P[y, :, 0] - v*Q[y, :, 0]) / d[y]
 	Z[0, 0, 0] = 0.0
 	Z[0, 0, 1] = 0.0
+	# z[:, :, 0] = ( uu*P[:, :, 1] + vv*Q[:, :, 1]) / d
+	# z[:, :, 1] = (-uu*P[:, :, 0] - vv*Q[:, :, 0]) / d
+	# z[0, 0, 0] = 0.0
+	# z[0, 0, 1] = 0.0
+	# print( Z.shape, z.shape, np.allclose( Z, z ) )
 	Z = cv2.dft( Z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
 	return Z
