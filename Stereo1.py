@@ -30,14 +30,13 @@ def GetNormalMap( lights, images ) :
 	# 	albedo[y, :] = p
 	# v2
 	# Compute the normals
-	normals = np.tensordot( lights_inv, images, 1 ).T
-	normals = np.swapaxes( normals, 0, 1 )
+	normals = np.tensordot( lights_inv, images, 1 ).T.swapaxes( 0, 1 )
 	# Compute the albedo
 	albedo = np.sqrt( ( normals ** 2 ).sum( axis = 2 ) )
 	# Normalize the normals
 	valid = albedo > 0
-	normals[ valid ] /= albedo[ valid, np.newaxis ]
-	normals[ ~valid ] = [ 0, 0, 1 ]
+	normals[  valid ] /= albedo[ valid, np.newaxis ]
+	normals[ ~valid ]  = [ 0, 0, 1 ]
 	# Normalize the albedo
 	albedo /= albedo.max()
 	# Return the normals
