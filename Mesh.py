@@ -104,3 +104,33 @@ def ExportVrml( filename, z, normals ) :
 	with open( filename, 'wb' ) as vrml_file :
 		# Write the VRML file
 		vrml_file.write( vrml.encode( 'UTF-8' ) )
+
+# Write a X3D file
+def ExportX3d( filename, z, normals ) :
+	# Get grid size
+	height, width = z.shape[:2]
+	# Flip the image to match 3D space and flatten the array
+	z = np.flip( -z, 0 ).flatten()
+	# Reshape the normal array
+	n = normals.reshape( (width * height, 3) )
+	# Generate the U-V grid for the texture coordinates
+	u, v = np.meshgrid( np.linspace( 0, 1, width ), np.linspace( 0, 1, height ) )
+	t = np.array( [ u.flatten(), v.flatten() ] ).T
+	# File Header
+	x3d = '''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE X3D PUBLIC "ISO//Web3D//DTD X3D 3.3//EN" "http://www.web3d.org/specifications/x3d-3.3.dtd">
+<X3D profile="Interchange" version="3.3" xmlns:xsd="http://www.w3.org/2001/XMLSchema-instance" xsd:noNamespaceSchemaLocation="http://www.web3d.org/specifications/x3d-3.3.xsd">
+'''
+	# Begin description
+	x3d += '<Scene>\n'
+	x3d += '<Shape>\n'
+	# Elevation grid
+	x3d += '<ElevationGrid xDimension=\'{}\' zDimension=\'{}\' height=\'{}\'/>\n'.format( width, height, z.flatten().tolist() )
+	# End description
+	x3d += '</Shape>\n'
+	x3d += '</Scene>\n'
+	x3d += '</X3D>\n'
+	# Open the target file
+	with open( filename, 'wb' ) as x3d_file :
+		# Write the X3D file
+		x3d_file.write( x3d.encode( 'UTF-8' ) )

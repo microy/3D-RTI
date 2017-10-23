@@ -10,3 +10,4 @@ Images/*
 # 3D mesh files
 *.ply
 *.wrl
+*.x3d

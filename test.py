@@ -54,4 +54,5 @@ z = Depth.GetDepthMap1( normals )
 # Triangulate the depth map, and export the mesh to a PLY file
 print( 'Exporting mesh...' )
 Mesh.ExportPly( 'mesh.ply', z, normals )
+#Mesh.ExportX3d( 'mesh.x3d', z, normals )
 #Mesh.ExportVrml( 'mesh.wrl', z, normals )
