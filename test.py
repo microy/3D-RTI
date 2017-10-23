@@ -17,6 +17,11 @@ print( 'Reading input data...' )
 lights = Data.ReadLights( sys.argv[1] )
 images = Data.ReadImages( sys.argv[1] )
 
+# import timeit
+# print( 'Testing...' )
+# print( timeit.timeit( lambda:Normal.GetNormalMap1( lights, images ), number=1 ) )
+# print( timeit.timeit( lambda:Normal.GetNormalMap2( lights, images ), number=1 ) )
+
 # Compute normal map
 print( 'Computing normal map...' )
 # Stereo 1
