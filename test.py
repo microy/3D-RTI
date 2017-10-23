@@ -9,8 +9,8 @@ import numpy as np
 import Curvature
 import Data
 import Mesh
-import Stereo1
-import Stereo2
+import Normal
+import Depth
 
 # Read input files
 print( 'Reading input data...' )
@@ -20,9 +20,9 @@ images = Data.ReadImages( sys.argv[1] )
 # Compute normal map
 print( 'Computing normal map...' )
 # Stereo 1
-#normals, albedo = Stereo1.GetNormalMap( lights, images )
+#normals, albedo = Normal.GetNormalMap1( lights, images )
 # Stereo 2
-normals, albedo = Stereo2.GetNormalMap( lights, images )
+normals, albedo = Normal.GetNormalMap2( lights, images )
 # Convert the normal map into an image
 normalmap_image = cv2.cvtColor( normals.astype( np.float32 ), cv2.COLOR_BGR2RGB )
 # Dipslay the normal map and the albedo
@@ -36,7 +36,7 @@ cv2.imwrite( 'albedo.png',  albedo  * 255.99 )
 
 # Compute the depth map
 print( 'Computing depth map...' )
-z = Stereo1.GetDepthMap( normals )
+z = Depth.GetDepthMap1( normals )
 
 # Compute the curvature
 # print( 'Computing curvature...' )
