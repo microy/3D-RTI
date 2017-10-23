@@ -6,6 +6,7 @@ import sys
 import cv2
 import numpy as np
 # Internal dependencies
+import Curvature
 import Data
 import Mesh
 import Stereo1
@@ -36,6 +37,14 @@ cv2.imwrite( 'albedo.png',  albedo  * 255.99 )
 # Compute the depth map
 print( 'Computing depth map...' )
 z = Stereo1.GetDepthMap( normals )
+
+# Compute the curvature
+# print( 'Computing curvature...' )
+# H, K = Curvature.GetCurvature( z )
+# cv2.imshow( 'H', Curvature.Colormap(H) )
+# cv2.imshow( 'K', Curvature.Colormap(K) )
+# cv2.waitKey()
+# cv2.destroyAllWindows()
 
 # Triangulate the depth map, and export the mesh to a PLY file
 print( 'Exporting mesh...' )
