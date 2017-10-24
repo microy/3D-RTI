@@ -6,28 +6,24 @@ import sys
 import cv2
 import numpy as np
 # Internal dependencies
-import Curvature
-import Data
-import Mesh
-import Normal
-import Depth
+import xRTI as rti
 
 # Read input files
 print( 'Reading input data...' )
-lights = Data.ReadLights( sys.argv[1] )
-images = Data.ReadImages( sys.argv[1] )
+lights = rti.ReadLights( sys.argv[1] )
+images = rti.ReadImages( sys.argv[1] )
 
 # import timeit
 # print( 'Testing...' )
-# print( timeit.timeit( lambda:Normal.GetNormalMap1( lights, images ), number=1 ) )
-# print( timeit.timeit( lambda:Normal.GetNormalMap2( lights, images ), number=1 ) )
+# print( timeit.timeit( lambda : rti.GetNormalMap1( lights, images ), number=10 ) )
+# print( timeit.timeit( lambda : rti.GetNormalMap2( lights, images ), number=10 ) )
 
 # Compute normal map
 print( 'Computing normal map...' )
 # Stereo 1
-#normals, albedo = Normal.GetNormalMap1( lights, images )
+#normals, albedo = rti.GetNormalMap1( lights, images )
 # Stereo 2
-normals, albedo = Normal.GetNormalMap2( lights, images )
+normals, albedo = rti.GetNormalMap2( lights, images )
 # Convert the normal map into an image
 normalmap_image = cv2.cvtColor( normals.astype( np.float32 ), cv2.COLOR_BGR2RGB )
 # Dipslay the normal map and the albedo
@@ -41,18 +37,18 @@ cv2.imwrite( 'albedo.png',  albedo  * 255.99 )
 
 # Compute the depth map
 print( 'Computing depth map...' )
-z = Depth.GetDepthMap1( normals )
+z = rti.GetDepthMap1( normals )
 
 # Compute the curvature
 # print( 'Computing curvature...' )
-# H, K = Curvature.GetCurvature( z )
-# cv2.imshow( 'H', Curvature.Colormap(H) )
-# cv2.imshow( 'K', Curvature.Colormap(K) )
+# H, K = rti.GetCurvature( z )
+# cv2.imshow( 'H', Colormap(H) )
+# cv2.imshow( 'K', Colormap(K) )
 # cv2.waitKey()
 # cv2.destroyAllWindows()
 
 # Triangulate the depth map, and export the mesh to a PLY file
 print( 'Exporting mesh...' )
-Mesh.ExportPly( 'mesh.ply', z, normals )
-#Mesh.ExportX3d( 'mesh.x3d', z, normals )
-#Mesh.ExportVrml( 'mesh.wrl', z, normals )
+rti.ExportPly( 'mesh.ply', z, normals )
+#rti.ExportX3d( 'mesh.x3d', z, normals )
+#rti.ExportVrml( 'mesh.wrl', z, normals )
