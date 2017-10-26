@@ -5,7 +5,6 @@
 #
 
 # External dependencies
-#import cv2
 import numpy as np
 
 #
@@ -17,13 +16,11 @@ import numpy as np
 #   https://github.com/NewProggie/Photometric-Stereo
 #   http://pages.cs.wisc.edu/~csverma/CS766_09/Stereo/stereo.html
 #
-def GetNormalMap1( lights, images ) :
+def GetNormalMap( lights, images ) :
 	# Get the image size
 	height, width = images[0].shape[ :2 ]
 	# Compute the pseudo-inverse of the light position matrix using SVD
-#	_, lights_inv = cv2.invert( lights, flags = cv2.DECOMP_SVD )
 	lights_inv = np.linalg.pinv( lights )
-	# v1
 	# Initialize the normals
 	normals = np.zeros( ( height, width, 3 ) )
 	albedo = np.zeros( ( height, width ) )
@@ -40,15 +37,6 @@ def GetNormalMap1( lights, images ) :
 		# Save the normals and the albedo
 		normals[ y, : ] = n
 		albedo[ y, : ] = p
-	# # v2
-	# # Compute the normals
-	# normals = np.tensordot( lights_inv, images, 1 ).T.swapaxes( 0, 1 )
-	# # Compute the albedo
-	# albedo = np.sqrt( ( normals ** 2 ).sum( axis = 2 ) )
-	# # Normalize the normals
-	# valid = albedo > 0
-	# normals[  valid ] /= albedo[ valid, np.newaxis ]
-	# normals[ ~valid ]  = [ 0, 0, 1 ]
 	# Normalize the albedo
 	albedo /= albedo.max()
 	# Return the normals
