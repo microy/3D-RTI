@@ -1,5 +1,3 @@
-from . import Colormap
-from .Colormap import *
 from . import Curvature
 from .Curvature import *
 from . import Data
