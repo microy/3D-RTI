@@ -25,20 +25,21 @@ normals, albedo = rti.GetNormalMap( lights, images )
 print( 'Computing slopes...' )
 rti.SlopeImage( normals )
 
-# Convert the normal map into an image
-normalmap_image = cv2.cvtColor( normals.astype( np.float32 ), cv2.COLOR_BGR2RGB )
-# Dipslay the normal map and the albedo
-# cv2.imshow( 'Normal Map',  normalmap_image )
-# cv2.imshow( 'Albedo',  albedo )
-# cv2.waitKey()
-# cv2.destroyAllWindows()
 # Save the normal map and the albedo
+print( 'Saving normal map and albedo...' )
+normalmap_image = cv2.cvtColor( normals.astype( np.float32 ), cv2.COLOR_RGB2BGR )
 cv2.imwrite( 'normalmap.png',  normalmap_image  * 255.99 )
 cv2.imwrite( 'albedo.png',  albedo  * 255.99 )
 
 # Compute the depth map
 print( 'Computing depth map...' )
 z = rti.GetDepthMap1( normals )
+
+# Save the depth map
+print( 'Saving depth map...' )
+zn = np.zeros( z.shape )
+cv2.normalize( z, zn, 0, 255, cv2.NORM_MINMAX )
+cv2.imwrite( 'depthmap.png', zn )
 
 # Compute the curvature
 # print( 'Computing curvature...' )
