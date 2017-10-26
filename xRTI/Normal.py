@@ -50,11 +50,14 @@ def SlopeImage( normals ) :
 	qgrads = normals[ :, :, 1 ] / normals[ :, :, 2 ]
 	# Mixed the slopes
 #	s = pgrads + qgrads
-	s = np.sqrt( pgrads**2 + qgrads**2 )
+	s = np.sqrt( pgrads ** 2 + qgrads ** 2 )
 	# Normalize
 	min, max = s.min(), s.max()
 	s -= min
 	s /= (max-min)
+	# Invert the values
+	s *= -1
+	s += 1
 	# Dipslay the slopes
 #	cv2.imshow( 'Slopes',  s )
 #	cv2.waitKey()
