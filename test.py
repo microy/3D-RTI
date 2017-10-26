@@ -21,6 +21,10 @@ images = rti.ReadImages( sys.argv[1] )
 print( 'Computing normal map...' )
 normals, albedo = rti.GetNormalMap( lights, images )
 
+# Compute the slopes
+print( 'Computing slopes...' )
+rti.SlopeImage( normals )
+
 # Convert the normal map into an image
 normalmap_image = cv2.cvtColor( normals.astype( np.float32 ), cv2.COLOR_BGR2RGB )
 # Dipslay the normal map and the albedo

@@ -5,6 +5,7 @@
 #
 
 # External dependencies
+import cv2
 import numpy as np
 
 #
@@ -41,3 +42,21 @@ def GetNormalMap( lights, images ) :
 	albedo /= albedo.max()
 	# Return the normals
 	return normals, albedo
+
+# Write an image of the slopes
+def SlopeImage( normals ) :
+	# Compute the slopes
+	pgrads = normals[ :, :, 0 ] / normals[ :, :, 2 ]
+	qgrads = normals[ :, :, 1 ] / normals[ :, :, 2 ]
+	# Mixed the slopes
+#	s = pgrads + qgrads
+	s = np.sqrt( pgrads**2 + qgrads**2 )
+	# Normalize
+	min, max = s.min(), s.max()
+	s -= min
+	s /= (max-min)
+	# Dipslay the slopes
+#	cv2.imshow( 'Slopes',  s )
+#	cv2.waitKey()
+	# Save the slopes
+	cv2.imwrite( 'slopes.png',  s  * 255.99 )
