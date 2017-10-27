@@ -41,16 +41,16 @@ dx, dy = rti.GetSlopes( normals )
 
 # Save the slopes
 print( 'Saving slopes...' )
-c = cv2.normalize( np.absolute(dx), 0, 255, cv2.NORM_MINMAX ).astype( np.uint8 )
+c = cv2.normalize( dx, 0, 255, cv2.NORM_MINMAX ).astype( np.uint8 )
 #c = cv2.applyColorMap( c, cv2.COLORMAP_RAINBOW )
 cv2.imwrite( 'slope-x.png',  c )
 c = cv2.normalize( dy, 0, 255, cv2.NORM_MINMAX ).astype( np.uint8 )
 #c = cv2.applyColorMap( c, cv2.COLORMAP_RAINBOW )
 cv2.imwrite( 'slope-y.png',  c )
 
-# Compute the depth map
-print( 'Computing depth map...' )
-z = rti.GetDepthMap1( normals )
+# Compute the depth
+print( 'Computing depth...' )
+z = rti.GetDepth( normals )
 # Multiply the Z coordinates by the focal length to correct perspective
 z *= float( args.f )
 

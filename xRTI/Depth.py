@@ -8,8 +8,13 @@
 import cv2
 import numpy as np
 
-# Source adapted from https://github.com/NewProggie/Photometric-Stereo
-def GetDepthMap1( normals ) :
+#
+# Recover the depth from the normals
+#
+# Source adapted from :
+#   https://github.com/NewProggie/Photometric-Stereo
+#
+def GetDepth( normals ) :
 	# Get the image size
 	height, width = normals.shape[ :2 ]
 	# Compute the gradients
@@ -20,17 +25,7 @@ def GetDepthMap1( normals ) :
 	q = cv2.dft( qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
 	# Initialize the depth
 	z = np.zeros( ( height, width, 2 ) )
-	# v1
-	# for y in range(height) :
-	# 	for x in range(width) :
-	# 		if y == 0 and x == 0 : continue
-	# 		u = math.sin( y * 2.0 * math.pi / height )
-	# 		v = math.sin( x * 2.0 * math.pi / width )
-	# 		uv = u ** 2 + v ** 2
-	# 		d = 2 * uv + uv ** 2
-	# 		Z[y, x, 0] = ( u*P[y, x, 1] + v*Q[y, x, 1]) / d
-	# 		Z[y, x, 1] = (-u*P[y, x, 0] - v*Q[y, x, 0]) / d
-	# v2
+	# 
 	u = np.linspace( 0, 2 * np.pi, height, endpoint = False )
 	v = np.linspace( 0, 2 * np.pi, width,  endpoint = False )
 	u, v = np.meshgrid( np.sin( u ), np.sin( v ), indexing = 'ij' )
