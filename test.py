@@ -25,9 +25,9 @@ images = rti.ReadImages( sys.argv[1] )
 # print( 'Testing...' )
 # print( timeit.timeit( lambda : rti.GetNormalMap( lights, images ), number=10 ) )
 
-# Compute normal map
-print( 'Computing normal map...' )
-normals, albedo = rti.GetNormalMap( lights, images )
+# Compute the normals and the albedo
+print( 'Computing normals and albedo...' )
+normals, albedo = rti.GetNormals( lights, images )
 
 # Save the normal map and the albedo
 print( 'Saving normal map and albedo...' )
@@ -37,11 +37,16 @@ cv2.imwrite( 'albedo.png',  albedo  * 255.99 )
 
 # Compute the slopes
 print( 'Computing slopes...' )
-slopes = rti.SlopeImage( normals )
+dx, dy = rti.GetSlopes( normals )
 
 # Save the slopes
 print( 'Saving slopes...' )
-cv2.imwrite( 'slopes.png',  slopes  * 255.99 )
+c = cv2.normalize( np.absolute(dx), 0, 255, cv2.NORM_MINMAX ).astype( np.uint8 )
+#c = cv2.applyColorMap( c, cv2.COLORMAP_RAINBOW )
+cv2.imwrite( 'slope-x.png',  c )
+c = cv2.normalize( dy, 0, 255, cv2.NORM_MINMAX ).astype( np.uint8 )
+#c = cv2.applyColorMap( c, cv2.COLORMAP_RAINBOW )
+cv2.imwrite( 'slope-y.png',  c )
 
 # Compute the depth map
 print( 'Computing depth map...' )

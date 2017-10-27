@@ -8,6 +8,8 @@
 import numpy as np
 
 #
+# Compute the normals from a set of images and light directions
+#
 # Reference :
 #   Photometric Method for Determining Surface Orientation from Multiple Images
 #   Robert J. Woodham, Optical Engineering, 19(1), 139-144, 1980
@@ -16,7 +18,7 @@ import numpy as np
 #   https://github.com/NewProggie/Photometric-Stereo
 #   http://pages.cs.wisc.edu/~csverma/CS766_09/Stereo/stereo.html
 #
-def GetNormalMap( lights, images ) :
+def GetNormals( lights, images ) :
 	# Get the image size
 	height, width = images[0].shape[ :2 ]
 	# Compute the pseudo-inverse of the light position matrix using SVD
@@ -42,23 +44,12 @@ def GetNormalMap( lights, images ) :
 	# Return the normals
 	return normals, albedo
 
-# Write an image of the slopes
-def SlopeImage( normals ) :
+# Compute the slopes
+def GetSlopes( normals ) :
 	# Compute the slopes
-	pgrads = normals[ :, :, 0 ] / normals[ :, :, 2 ]
-	qgrads = normals[ :, :, 1 ] / normals[ :, :, 2 ]
+	dx = normals[ :, :, 0 ] / normals[ :, :, 2 ]
+	dy = normals[ :, :, 1 ] / normals[ :, :, 2 ]
 	# Compute the gradients of the normals
-#	pgrads, qgrads, rgrads = np.gradient( normals )
-	# Mixed the slopes
-	s = pgrads + qgrads
-#	s = np.sqrt( pgrads ** 2 + qgrads ** 2 + rgrads ** 2 )
-#	s = np.sqrt( pgrads ** 2 + qgrads ** 2 )
-	# Normalize
-	min, max = s.min(), s.max()
-	s -= min
-	s /= (max-min)
-	# Invert the values
-	s *= -1
-	s += 1
+	dx, dy, _ = np.gradient( normals )
 	# Return the slopes
-	return s
+	return dx, dy
