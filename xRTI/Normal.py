@@ -5,7 +5,6 @@
 #
 
 # External dependencies
-import cv2
 import numpy as np
 
 #
@@ -48,9 +47,12 @@ def SlopeImage( normals ) :
 	# Compute the slopes
 	pgrads = normals[ :, :, 0 ] / normals[ :, :, 2 ]
 	qgrads = normals[ :, :, 1 ] / normals[ :, :, 2 ]
+	# Compute the gradients of the normals
+#	pgrads, qgrads, rgrads = np.gradient( normals )
 	# Mixed the slopes
-#	s = pgrads + qgrads
-	s = np.sqrt( pgrads ** 2 + qgrads ** 2 )
+	s = pgrads + qgrads
+#	s = np.sqrt( pgrads ** 2 + qgrads ** 2 + rgrads ** 2 )
+#	s = np.sqrt( pgrads ** 2 + qgrads ** 2 )
 	# Normalize
 	min, max = s.min(), s.max()
 	s -= min
@@ -58,8 +60,5 @@ def SlopeImage( normals ) :
 	# Invert the values
 	s *= -1
 	s += 1
-	# Dipslay the slopes
-#	cv2.imshow( 'Slopes',  s )
-#	cv2.waitKey()
-	# Save the slopes
-	cv2.imwrite( 'slopes.png',  s  * 255.99 )
+	# Return the slopes
+	return s
