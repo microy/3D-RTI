@@ -2,11 +2,19 @@
 # -*- coding:utf-8 -*-
 
 # External dependencies
+import argparse
 import sys
 import cv2
 import numpy as np
+
 # Internal dependency
 import xRTI as rti
+
+# Command line argument parser
+parser = argparse.ArgumentParser( description='Process RTI images.', usage='%(prog)s [options] image_folder' )
+parser.add_argument( 'image_folder', nargs='?', default=None, help='Input RTI image file folder' )
+parser.add_argument( '-f', default=1, action='store', help='Camera focal length (default=1)' )
+args = parser.parse_args()
 
 # Read input files
 print( 'Reading input data...' )
@@ -38,6 +46,8 @@ cv2.imwrite( 'slopes.png',  slopes  * 255.99 )
 # Compute the depth map
 print( 'Computing depth map...' )
 z = rti.GetDepthMap1( normals )
+# Multiply the Z coordinates by the focal length to correct perspective
+z *= float( args.f )
 
 # Save the depth map
 print( 'Saving depth map...' )
