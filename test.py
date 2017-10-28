@@ -41,12 +41,13 @@ dx, dy = rti.GetSlopes( normals )
 
 # Save the slopes
 print( 'Saving slopes...' )
-c = cv2.normalize( dx, 0, 255, cv2.NORM_MINMAX ).astype( np.uint8 )
-#c = cv2.applyColorMap( c, cv2.COLORMAP_RAINBOW )
-cv2.imwrite( 'slope-x.png',  c )
-c = cv2.normalize( dy, 0, 255, cv2.NORM_MINMAX ).astype( np.uint8 )
-#c = cv2.applyColorMap( c, cv2.COLORMAP_RAINBOW )
+c = cv2.normalize( dx, None, 0, 255, cv2.NORM_MINMAX ).astype( np.uint8 )
+cv2.imwrite( 'slope-x.png', c )
+c = cv2.normalize( dy, None, 0, 255, cv2.NORM_MINMAX ).astype( np.uint8 )
 cv2.imwrite( 'slope-y.png',  c )
+s = np.sqrt( dx ** 2 + dy ** 2 )
+c = cv2.normalize( s, None, 0, 255, cv2.NORM_MINMAX ).astype( np.uint8 )
+cv2.imwrite( 'slopes.png',  c )
 
 # Compute the depth
 print( 'Computing depth...' )
