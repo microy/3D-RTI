@@ -11,6 +11,12 @@ import numpy as np
 #
 # Recover the depth from the normals
 #
+# Reference :
+#  - A Method for Enforcing Integrability in Shape from Shading Algorithms
+#    R. T. Frankot, R. Chellappa
+#    IEEE Transactions on Pattern Analysis and Machine Intelligence
+#    Vol 10, No 4, 1988, pp 439-451
+#
 # Source adapted from :
 #   https://github.com/NewProggie/Photometric-Stereo
 #
