@@ -47,9 +47,9 @@ def GetNormals( lights, images ) :
 # Compute the slopes
 def GetSlopes( normals ) :
 	# Compute the slopes
-	dx = normals[ :, :, 0 ] / normals[ :, :, 2 ]
-	dy = normals[ :, :, 1 ] / normals[ :, :, 2 ]
+	dx = -normals[ :, :, 0 ] / normals[ :, :, 2 ]
+	dy = -normals[ :, :, 1 ] / normals[ :, :, 2 ]
 	# Compute the gradients of the normals
-	dx, dy, _ = np.gradient( normals )
+#	dx, dy, _ = np.gradient( normals )
 	# Return the slopes
 	return dx, dy

@@ -25,7 +25,7 @@ def GetDepth( normals ) :
 	q = cv2.dft( qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
 	# Initialize the depth
 	z = np.zeros( ( height, width, 2 ) )
-	# 
+	#
 	u = np.linspace( 0, 2 * np.pi, height, endpoint = False )
 	v = np.linspace( 0, 2 * np.pi, width,  endpoint = False )
 	u, v = np.meshgrid( np.sin( u ), np.sin( v ), indexing = 'ij' )
