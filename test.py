@@ -41,13 +41,10 @@ dx, dy = rti.GetSlopes( normals )
 
 # Save the slopes
 print( 'Saving slopes...' )
-c = cv2.normalize( dx, None, 0, 255, cv2.NORM_MINMAX ).astype( np.uint8 )
-cv2.imwrite( 'slope-x.png', c )
-c = cv2.normalize( dy, None, 0, 255, cv2.NORM_MINMAX ).astype( np.uint8 )
-cv2.imwrite( 'slope-y.png',  c )
+cv2.imwrite( 'slope-x.png', cv2.normalize( dx, None, 0, 255, cv2.NORM_MINMAX ) )
+cv2.imwrite( 'slope-y.png', cv2.normalize( dy, None, 0, 255, cv2.NORM_MINMAX ) )
 s = np.sqrt( dx ** 2 + dy ** 2 )
-c = cv2.normalize( s, None, 0, 255, cv2.NORM_MINMAX ).astype( np.uint8 )
-cv2.imwrite( 'slopes.png',  c )
+cv2.imwrite( 'slopes.png', cv2.normalize( s, None, 0, 255, cv2.NORM_MINMAX ) )
 
 # Compute the depth
 print( 'Computing depth...' )
@@ -57,9 +54,7 @@ z *= float( args.f )
 
 # Save the depth map
 print( 'Saving depth map...' )
-zn = np.zeros( z.shape )
-cv2.normalize( z, zn, 0, 255, cv2.NORM_MINMAX )
-cv2.imwrite( 'depthmap.png', zn )
+cv2.imwrite( 'depthmap.png', cv2.normalize( z, None, 0, 255, cv2.NORM_MINMAX ) )
 
 # Compute the curvature
 # print( 'Computing curvature...' )
