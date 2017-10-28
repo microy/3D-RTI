@@ -19,7 +19,7 @@ args = parser.parse_args()
 # Read input files
 print( 'Reading input data...' )
 lights = rti.ReadLights( sys.argv[1] )
-images = rti.ReadImages( sys.argv[1] )
+images, mask = rti.ReadImages( sys.argv[1] )
 
 # import timeit
 # print( 'Testing...' )
@@ -28,6 +28,8 @@ images = rti.ReadImages( sys.argv[1] )
 # Compute the normals and the albedo
 print( 'Computing normals and albedo...' )
 normals, albedo = rti.GetNormals( lights, images )
+normals[ mask ] = [ 0, 0, 1 ]
+albedo[ mask ] = 0
 
 # Save the normal map and the albedo
 print( 'Saving normal map and albedo...' )
@@ -38,6 +40,8 @@ cv2.imwrite( 'albedo.png',  albedo  * 255.99 )
 # Compute the slopes
 print( 'Computing slopes...' )
 dx, dy = rti.GetSlopes( normals )
+dx[ mask ] = 0
+dy[ mask ] = 0
 
 # Save the slopes
 print( 'Saving slopes...' )
@@ -49,6 +53,7 @@ cv2.imwrite( 'slopes.png', cv2.normalize( s, None, 0, 255, cv2.NORM_MINMAX ) )
 # Compute the depth
 print( 'Computing depth...' )
 z = rti.GetDepth( normals )
+z[ mask ] = z.min()
 # Multiply the Z coordinates by the focal length to correct perspective
 z *= float( args.f )
 

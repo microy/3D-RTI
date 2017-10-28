@@ -37,7 +37,9 @@ def ReadImages( path ) :
 	images = np.array( images )
 	# Read the mask image
 	mask = cv2.imread( mask_file, cv2.IMREAD_GRAYSCALE )
+	mask = mask == 0
+	print( mask.shape, mask.dtype )
 	# Apply the mask to every image
-	images[ :, mask == 0 ] = 0
+	images[ :, mask ] = 0
 	# Return the images
-	return images
+	return images, mask
