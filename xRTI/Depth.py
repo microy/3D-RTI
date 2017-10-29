@@ -5,17 +5,17 @@
 #
 
 # External dependencies
-#import cv2
+import cv2
 import numpy as np
 
 #
 # Recover the depth from the normals
 #
 # Reference :
-#  - A Method for Enforcing Integrability in Shape from Shading Algorithms
-#    R. T. Frankot, R. Chellappa
-#    IEEE Transactions on Pattern Analysis and Machine Intelligence
-#    Vol 10, No 4, 1988, pp 439-451
+#  A Method for Enforcing Integrability in Shape from Shading Algorithms
+#  R. T. Frankot, R. Chellappa
+#  IEEE Transactions on Pattern Analysis and Machine Intelligence
+#  Vol 10, No 4, 1988, pp 439-451
 #
 # Source adapted from :
 #   https://github.com/NewProggie/Photometric-Stereo
@@ -24,16 +24,13 @@ def GetDepth( normals ) :
 	# Get the image size
 	height, width = normals.shape[ :2 ]
 	# Compute the gradients
-	pgrads = normals[ :, :, 0 ] / normals[ :, :, 2 ]
-	qgrads = normals[ :, :, 1 ] / normals[ :, :, 2 ]
+	pgrads = - normals[ :, :, 0 ] / normals[ :, :, 2 ]
+	qgrads = - normals[ :, :, 1 ] / normals[ :, :, 2 ]
 	# Compute the Fourier Transformation of the gradients
-#	p = cv2.dft( pgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
-#	q = cv2.dft( qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
-	p = np.fft.fft2( pgrads )
-	q = np.fft.fft2( qgrads )
+	p = cv2.dft( pgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
+	q = cv2.dft( qgrads, flags = cv2.DFT_COMPLEX_OUTPUT )
 	# Initialize the depth
-#	z = np.zeros( ( height, width, 2 ) )
-	z = np.zeros( ( height, width ), dtype = np.complex128 )
+	z = np.zeros( ( height, width, 2 ) )
 	#
 	u = np.linspace( 0, 2 * np.pi, height, endpoint = False )
 	v = np.linspace( 0, 2 * np.pi, width,  endpoint = False )
@@ -43,16 +40,12 @@ def GetDepth( normals ) :
 	# Fix division by zero
 	d[ 0, 0 ] = 1
 	# Compute the depth map
-#	z[ :, :, 0 ] = (  u * p[ :, :, 1 ] + v * q[ :, :, 1 ] ) / d
-#	z[ :, :, 1 ] = ( -u * p[ :, :, 0 ] - v * q[ :, :, 0 ] ) / d
-	z[ :, : ].real = (  u * p.imag + v * q.imag ) / d
-	z[ :, : ].imag = ( -u * p.real - v * q.real ) / d
+	z[ :, :, 0 ] = (  u * p[ :, :, 1 ] + v * q[ :, :, 1 ] ) / d
+	z[ :, :, 1 ] = ( -u * p[ :, :, 0 ] - v * q[ :, :, 0 ] ) / d
 	# Fix
-	z[ 0, : ] = 0 + 0j
-	z[ :, 0 ] = 0 + 0j
+	z[ 0, 0 ] = 0
 	# Inverse Fourier transformation of the depth map
-#	z = cv2.dft( z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
-	z = np.fft.ifft2( z ).real
+	z = cv2.dft( z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
 	# Return the depth map
 	return z
 
