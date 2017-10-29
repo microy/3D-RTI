@@ -48,7 +48,8 @@ print( 'Saving slopes...' )
 cv2.imwrite( 'slope-x.png', cv2.normalize( dx, None, 0, 255, cv2.NORM_MINMAX ) )
 cv2.imwrite( 'slope-y.png', cv2.normalize( dy, None, 0, 255, cv2.NORM_MINMAX ) )
 s = np.sqrt( dx ** 2 + dy ** 2 )
-cv2.imwrite( 'slopes.png', cv2.normalize( s, None, 0, 255, cv2.NORM_MINMAX ) )
+s[ mask ] = s.max()
+cv2.imwrite( 'slopes.png', 255 - cv2.normalize( s, None, 0, 255, cv2.NORM_MINMAX ) )
 
 # Compute the depth
 print( 'Computing depth...' )
@@ -62,12 +63,10 @@ print( 'Saving depth map...' )
 cv2.imwrite( 'depthmap.png', cv2.normalize( z, None, 0, 255, cv2.NORM_MINMAX ) )
 
 # Compute the curvature
-# print( 'Computing curvature...' )
-# H, K = rti.GetCurvature( z )
-# cv2.imshow( 'H', Colormap(H) )
-# cv2.imshow( 'K', Colormap(K) )
-# cv2.waitKey()
-# cv2.destroyAllWindows()
+print( 'Computing curvature...' )
+H, K, Pmin, Pmax = rti.GetCurvaturesFromSlopes( dx, dy )
+cv2.imwrite( 'curvature-mean.png', cv2.normalize( H, None, 0, 255, cv2.NORM_MINMAX ) )
+cv2.imwrite( 'curvature-gaussian.png', cv2.normalize( K, None, 0, 255, cv2.NORM_MINMAX ) )
 
 # Triangulate the depth map, and export the mesh to a PLY file
 print( 'Exporting mesh...' )
