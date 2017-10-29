@@ -34,6 +34,7 @@ albedo[ mask ] = 0
 # Save the normal map and the albedo
 print( 'Saving normal map and albedo...' )
 normalmap_image = cv2.cvtColor( normals.astype( np.float32 ), cv2.COLOR_RGB2BGR )
+normalmap_image[ mask ] = 0
 cv2.imwrite( 'normalmap.png',  normalmap_image  * 255.99 )
 cv2.imwrite( 'albedo.png',  albedo  * 255.99 )
 
@@ -64,7 +65,7 @@ cv2.imwrite( 'depthmap.png', cv2.normalize( z, None, 0, 255, cv2.NORM_MINMAX ) )
 
 # Compute the curvature
 print( 'Computing curvature...' )
-H, K, Pmin, Pmax = rti.GetCurvaturesFromSlopes( dx, dy )
+H, K = rti.GetCurvaturesFromSlopes( dx, dy )
 cv2.imwrite( 'curvature-mean.png', cv2.normalize( H, None, 0, 255, cv2.NORM_MINMAX ) )
 cv2.imwrite( 'curvature-gaussian.png', cv2.normalize( K, None, 0, 255, cv2.NORM_MINMAX ) )
 
