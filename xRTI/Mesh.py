@@ -10,8 +10,8 @@ def ExportPly( filename, z, normals ) :
 	height, width = z.shape[:2]
 	# Generate the X-Y grid
 	x, y = np.meshgrid( np.arange( width ), np.arange( height ) )
-	# Flip the depth image to match 3D space
-	z = np.flip( -z, 0 )
+	# Flip the y-axis in the depth map to match 3D space
+	z = np.flipud( z )
 	# Create the vertices
 	vertices = np.array( [ x.flatten(), y.flatten(), z.flatten() ] ).T
 	# Array of vertex indices
@@ -53,8 +53,8 @@ end_header\n'''.format( vertex_number = len( vertices ), face_number = len( face
 def ExportVrml( filename, z, normals ) :
 	# Get grid size
 	height, width = z.shape[:2]
-	# Flip the image to match 3D space and flatten the array
-	z = np.flip( -z, 0 ).flatten()
+	# Flip the y-axis in the depth map to match 3D space
+	z = np.flipud( z ).flatten()
 	# Reshape the normal array
 	n = normals.reshape( (width * height, 3) )
 	# Generate the U-V grid for the texture coordinates
@@ -109,8 +109,8 @@ def ExportVrml( filename, z, normals ) :
 def ExportX3d( filename, z, normals ) :
 	# Get grid size
 	height, width = z.shape[:2]
-	# Flip the image to match 3D space and flatten the array
-	z = np.flip( -z, 0 ).flatten()
+	# Flip the y-axis in the depth map to match 3D space
+	z = np.flipud( z ).flatten()
 	# Reshape the normal array
 	n = normals.reshape( (width * height, 3) )
 	# Generate the U-V grid for the texture coordinates
