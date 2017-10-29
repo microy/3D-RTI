@@ -48,9 +48,9 @@ dy[ mask ] = 0
 print( 'Saving slopes...' )
 cv2.imwrite( 'slope-x.png', cv2.normalize( dx, None, 0, 255, cv2.NORM_MINMAX ) )
 cv2.imwrite( 'slope-y.png', cv2.normalize( dy, None, 0, 255, cv2.NORM_MINMAX ) )
-s = np.sqrt( dx ** 2 + dy ** 2 )
-s[ mask ] = s.max()
-cv2.imwrite( 'slopes.png', 255 - cv2.normalize( s, None, 0, 255, cv2.NORM_MINMAX ) )
+s = np.dstack( ( dx, dy, np.ones( dx.shape ) ) )
+s /= np.sqrt( 1 + dx ** 2 + dy ** 2 )[ :, :, np.newaxis ]
+cv2.imwrite( 'slopes.png', cv2.cvtColor( s.astype( np.float32 ) * 255.99, cv2.COLOR_RGB2BGR ) )
 
 # Compute the depth
 print( 'Computing depth...' )
