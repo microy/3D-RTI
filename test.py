@@ -44,6 +44,17 @@ dx, dy = rti.GetSlopes( normals )
 dx[ mask ] = 0
 dy[ mask ] = 0
 
+# Plot the slopes
+# import matplotlib.pyplot as plt
+# X, Y = np.meshgrid( np.arange( 0, images[0].shape[1] ), np.arange( 0, images[0].shape[0] ) )
+# skip = ( slice( None, None, 5 ), slice( None, None, 5 ) )
+# fig, ax = plt.subplots()
+# im = ax.imshow( cv2.normalize( normals, None, 0, 1, cv2.NORM_MINMAX ) )
+# ax.quiver( X[ skip ], Y[ skip ], dx[ skip ], dy[ skip ] )
+# ax.set( aspect=1, title='Normals and slopes')
+# fig.colorbar( im )
+# plt.show()
+
 # Save the slopes
 print( 'Saving slopes...' )
 cv2.imwrite( 'slope-x.png', cv2.normalize( dx, None, 0, 255, cv2.NORM_MINMAX ) )
