@@ -15,33 +15,31 @@ import numpy as np
 #   Robert J. Woodham, Optical Engineering, 19(1), 139-144, 1980
 #
 # Source adapted from :
+#   https://github.com/soravux/pms
 #   https://github.com/NewProggie/Photometric-Stereo
 #   http://pages.cs.wisc.edu/~csverma/CS766_09/Stereo/stereo.html
+#   https://github.com/RafaelMarinheiro/PhotometricStereo
 #
 def GetNormals( lights, images ) :
-	# Get the image size
-	height, width = images[0].shape[ :2 ]
 	# Compute the pseudo-inverse of the light position matrix using SVD
 	lights_inv = np.linalg.pinv( lights )
-	# Initialize the normals
-	normals = np.zeros( ( height, width, 3 ) )
-	albedo = np.zeros( ( height, width ) )
-	# Compute the normal for each pixel
-	for y in range( height ) :
-		# Compute the normals
-		n = np.dot( lights_inv, images[:, y, :] ).T
-		# Compute the albedo
-		p = np.sqrt( ( n ** 2 ).sum( axis = 1 ) )
-		# Normalize the normals
-		valid = p > 0
-		n[  valid ] /= p[ valid, np.newaxis ]
-		n[ ~valid ]  = [ 0, 0, 1 ]
-		# Save the normals and the albedo
-		normals[ y, : ] = n
-		albedo[ y, : ] = p
-	# Normalize the albedo
+	# Ravel the images
+	I = np.vstack( i.ravel() for i in images )
+	# Compute the normals
+	normals = lights_inv.dot( I ).T
+	# Compute the albedo
+	albedo = np.linalg.norm( normals, axis=1 )
+	# Normalize the normals
+	valid = albedo > 0
+	normals[  valid ] /= albedo[ valid, np.newaxis ]
+	normals[ ~valid ]  = [ 0, 0, 1 ]
+	# Normalize the albedo
 	albedo /= albedo.max()
-	# Return the normals
+	# Reshape the arrays
+	height, width = images[ 0 ].shape[ :2 ]
+	normals = normals.reshape( ( height, width, 3 ) )
+	albedo = albedo.reshape( ( height, width ) )
+	# Return the normals and the albedo
 	return normals, albedo
 
 # Compute the slopes
