@@ -21,14 +21,14 @@ import numpy as np
 #   https://github.com/RafaelMarinheiro/PhotometricStereo
 #
 def GetNormals( lights, images ) :
-	# Compute the pseudo-inverse of the light position matrix using SVD
-	lights_inv = np.linalg.pinv( lights )
 	# Ravel the images
 	I = np.vstack( i.ravel() for i in images )
+	# Compute the pseudo-inverse of the light position matrix using SVD
+	lights_inv = np.linalg.pinv( lights )
 	# Compute the normals
 	normals = lights_inv.dot( I ).T
 	# Compute the albedo
-	albedo = np.linalg.norm( normals, axis=1 )
+	albedo = np.linalg.norm( normals, axis = 1 )
 	# Normalize the normals
 	valid = albedo > 0
 	normals[  valid ] /= albedo[ valid, np.newaxis ]
@@ -45,9 +45,7 @@ def GetNormals( lights, images ) :
 # Compute the slopes
 def GetSlopes( normals ) :
 	# Compute the slopes
-	dx = -normals[ :, :, 0 ] / normals[ :, :, 2 ]
-	dy = -normals[ :, :, 1 ] / normals[ :, :, 2 ]
-	# Compute the gradients of the normals
-#	dx, dy, _ = np.gradient( normals )
+	dx = - normals[ :, :, 0 ] / normals[ :, :, 2 ]
+	dy = - normals[ :, :, 1 ] / normals[ :, :, 2 ]
 	# Return the slopes
 	return dx, dy
