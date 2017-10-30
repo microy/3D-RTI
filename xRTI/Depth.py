@@ -46,6 +46,8 @@ def GetDepth( normals ) :
 	z[ 0, 0 ] = 0
 	# Inverse Fourier transformation of the depth map
 	z = cv2.dft( z, flags = cv2.DFT_INVERSE | cv2.DFT_SCALE | cv2.DFT_REAL_OUTPUT )
+	# Translate to zero
+	z -= z.min()
 	# Return the depth map
 	return z
 

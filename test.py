@@ -66,7 +66,7 @@ cv2.imwrite( 'slopes.png', cv2.cvtColor( s.astype( np.float32 ) * 255.99, cv2.CO
 # Compute the depth
 print( 'Computing depth...' )
 z = rti.GetDepth( normals )
-z[ mask ] = z.min()
+z[ mask ] = 0
 # Multiply the Z coordinates by the focal length to correct perspective
 z *= float( args.f )
 
