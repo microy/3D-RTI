@@ -33,7 +33,13 @@ albedo[ mask ] = 0
 
 # Save the normal map and the albedo
 print( 'Saving normal map and albedo...' )
-normalmap_image = cv2.cvtColor( ( ( normals + 1 ) / 2 ).astype( np.float32 ), cv2.COLOR_RGB2BGR )
+# Convert the normals to a normal map
+normalmap_image = normals.copy()
+normalmap_image[ :, 0 ] += 1
+normalmap_image[ :, 0 ] /= 2
+normalmap_image[ :, 1 ] += 1
+normalmap_image[ :, 1 ] /= 2
+normalmap_image = cv2.cvtColor( normalmap_image.astype( np.float32 ), cv2.COLOR_RGB2BGR )
 normalmap_image[ mask ] = 0
 cv2.imwrite( 'normalmap.png',  normalmap_image  * 255.99 )
 cv2.imwrite( 'albedo.png',  albedo  * 255.99 )
